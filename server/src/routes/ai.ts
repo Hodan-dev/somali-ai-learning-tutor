@@ -9,11 +9,11 @@ export const aiRouter = Router();
 
 aiRouter.post('/chat', authRequired, requireRole('STUDENT'), async (req, res) => {
   const schema = z.object({
-    message: z.string().min(1).max(2000),
-    chatId: z.string().optional(),
-    courseId: z.string().optional(),
-    lessonId: z.string().optional(),
-    exerciseId: z.string().optional(),
+    message: z.string().trim().min(1).max(2000),
+    chatId: z.string().nullish(),
+    courseId: z.string().nullish(),
+    lessonId: z.string().nullish(),
+    exerciseId: z.string().nullish(),
     exerciseHint: z.boolean().optional(),
   });
 

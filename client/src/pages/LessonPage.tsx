@@ -108,7 +108,7 @@ export function LessonPage() {
         method: 'POST',
         json: {
           message: question,
-          chatId,
+          ...(chatId ? { chatId } : {}),
           lessonId: data.lesson.id,
           courseId: data.lesson.course_id,
         },

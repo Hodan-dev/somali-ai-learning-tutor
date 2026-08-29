@@ -176,7 +176,7 @@ export function TutorPage() {
     try {
       const res = await api<{ chatId: string; reply: string }>('/api/ai/chat', {
         method: 'POST',
-        json: { message: q, chatId },
+        json: { message: q, ...(chatId ? { chatId } : {}) },
       });
       setChatId(res.chatId);
       setMessages((m) => [...m, { sender: 'ai', message: res.reply }]);
