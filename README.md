@@ -10,7 +10,7 @@ A Somali-friendly educational web platform where students learn **Physics**, **B
 - **Backend:** Node.js + Express
 - **Database:** SQLite (Better SQLite3)
 - **Auth:** JWT + bcrypt (roles: `ADMIN`, `STUDENT`)
-- **AI:** Google AI Studio (Gemini), with a built-in Somali tutor fallback
+- **AI:** Google AI Studio (Gemini) via `@google/genai`, with a built-in Somali tutor fallback
 
 ## Quick start
 
@@ -62,19 +62,21 @@ Each course includes modules, lessons (with Somali explanations), and exercises.
 - Create text lessons & exercises
 - View students and per-student progress
 
-## AI Tutor (Google AI Studio)
+## AI Tutor (Google AI Studio + `@google/genai`)
 
 1. Open [Google AI Studio](https://aistudio.google.com/apikey) and create an API key.
-2. Put it in `server/.env`:
+2. Copy `server/.env.example` to `server/.env` and set:
 
 ```env
-GOOGLE_AI_API_KEY=your_key_here
-GOOGLE_AI_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
 3. Restart the server (`npm run dev`).
 
-The backend calls Gemini at `generativelanguage.googleapis.com` — the key never goes to the browser.  
+The backend uses the official `@google/genai` SDK. The API key stays in `server/.env` only — never in the React frontend.  
+Students call `POST /api/ai/chat`; the backend forwards the question to Gemini with lesson context.
+
 Without a key, a local Somali tutor fallback still answers using lesson content.
 
 ## Environment
@@ -84,8 +86,8 @@ Without a key, a local Somali tutor fallback still answers using lesson content.
 ```env
 PORT=3847
 JWT_SECRET=change-me
-GOOGLE_AI_API_KEY=
-GOOGLE_AI_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.0-flash
 UPLOAD_DIR=uploads
 DB_PATH=data/tutor.db
 ```

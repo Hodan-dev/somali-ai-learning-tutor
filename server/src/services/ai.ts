@@ -1,4 +1,5 @@
 import { v4 as uuid } from 'uuid';
+import { GeminiServiceError, generateGeminiReply, getGeminiStatus } from './gemini.js';
 
 /** Simple keyword overlap retrieval over lesson chunks (no external embedding API required). */
 export function retrieveRelevantChunks(
@@ -44,26 +45,8 @@ export function chunkText(text: string, size = 600): { id: string; content: stri
   return parts;
 }
 
-function getGoogleAiApiKey(): string | undefined {
-  return (
-    process.env.GOOGLE_AI_API_KEY?.trim() ||
-    process.env.GEMINI_API_KEY?.trim() ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() ||
-    undefined
-  );
-}
-
-function getGoogleAiModel(): string {
-  return process.env.GOOGLE_AI_MODEL?.trim() || 'gemini-2.0-flash';
-}
-
 export function getAiProviderStatus() {
-  const key = getGoogleAiApiKey();
-  return {
-    provider: 'google-ai-studio',
-    configured: Boolean(key),
-    model: getGoogleAiModel(),
-  };
+  return getGeminiStatus();
 }
 
 export async function generateTutorReply(params: {
@@ -74,76 +57,21 @@ export async function generateTutorReply(params: {
   contextChunks?: string[];
   exerciseHint?: boolean;
 }): Promise<string> {
-  const apiKey = getGoogleAiApiKey();
   const system = buildSystemPrompt(params);
 
-  if (apiKey) {
-    try {
-      const reply = await callGoogleAiStudio({
-        apiKey,
-        system,
-        question: params.question,
-      });
-      if (reply) return reply;
-    } catch (err) {
-      console.error('Google AI Studio request failed:', err);
+  try {
+    return await generateGeminiReply({
+      systemInstruction: system,
+      question: params.question,
+    });
+  } catch (err) {
+    if (err instanceof GeminiServiceError && err.statusCode === 503) {
+      console.warn('Gemini not configured — using local Somali tutor fallback.');
+      return localSomaliTutor(params);
     }
+    console.error('Gemini tutor failed, using fallback:', err);
+    return localSomaliTutor(params);
   }
-
-  return localSomaliTutor(params);
-}
-
-async function callGoogleAiStudio(opts: {
-  apiKey: string;
-  system: string;
-  question: string;
-}): Promise<string | null> {
-  const model = getGoogleAiModel();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': opts.apiKey,
-    },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: opts.system }],
-      },
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: opts.question }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.6,
-        maxOutputTokens: 1024,
-      },
-    }),
-  });
-
-  const data = (await res.json()) as {
-    error?: { message?: string };
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-      finishReason?: string;
-    }>;
-  };
-
-  if (!res.ok) {
-    console.error('Google AI Studio error:', data.error?.message || res.status);
-    return null;
-  }
-
-  const text = data.candidates
-    ?.flatMap((c) => c.content?.parts || [])
-    .map((p) => p.text || '')
-    .join('')
-    .trim();
-
-  return text || null;
 }
 
 function buildSystemPrompt(params: {
@@ -160,22 +88,31 @@ function buildSystemPrompt(params: {
     .filter(Boolean)
     .join('\n---\n');
 
-  return `You are Macallinka AI (Somali AI Tutor) for Somali students.
+  return `You are Macallinka AI (Somali AI Tutor) for Somali students learning school subjects.
+
+Subjects you support:
+- Mathematics (Xisaab)
+- Physics (Fiisigis)
+- Chemistry (Kiimiko)
+- Biology (Bayooloji)
+- English (Ingiriisi)
+
 Rules:
-1. Explain clearly in simple Somali when appropriate; keep technical terms (force, cell, atom, etc.) in English when useful.
+1. Explain clearly in simple Somali when appropriate; keep technical terms (force, atom, equation, etc.) in English when useful.
 2. Teach step-by-step. Do not overwhelm beginners.
 3. For exercises, give hints before full answers. If asked for the answer immediately, first encourage understanding.
 4. Explain why wrong answers are wrong.
 5. Encourage students with positive feedback.
-6. Stay relevant to the current lesson.
+6. Stay relevant to the current lesson and subject.
 7. Keep answers concise unless the student asks for more detail.
+8. Use examples when helpful.
 
-Current course: ${params.courseTitle || 'N/A'}
-Current lesson: ${params.lessonTitle || 'N/A'}
-${params.exerciseHint ? 'Context: student is working on an exercise — prefer hints.' : ''}
+Current course: ${params.courseTitle || 'General'}
+Current lesson: ${params.lessonTitle || 'General'}
+${params.exerciseHint ? 'Context: student is working on an exercise — prefer hints over full answers.' : ''}
 
 Lesson context:
-${context || 'No extra context.'}`;
+${context || 'No extra lesson context — answer using general knowledge for the subject.'}`;
 }
 
 function localSomaliTutor(params: {
@@ -205,7 +142,7 @@ Marka hore, isku day inaad xasuusato fikradda ugu muhiimsan ee **${lesson}**.
 
 ${context ? `Xusuuso casharka:\n"${context.slice(0, 220)}..."\n\n` : ''}Hint: U fiirso ereyada muhiimka ah ee casharka, ka dibna isku day inaad jawaabta samayso. Haddii aad wali xumaato, weydii hint kale. Si fiican ayaad u baranaysaa! 👏
 
-(Google AI Studio API key lama helin — geli GOOGLE_AI_API_KEY server/.env.)`;
+(GEMINI_API_KEY lama helin server/.env — geli furaha Google AI Studio.)`;
   }
 
   if (q.includes('hint') || q.includes('tilmaan')) {
