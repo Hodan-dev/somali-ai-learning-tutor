@@ -69,7 +69,7 @@ Each course includes modules, lessons (with Somali explanations), and exercises.
 
 ```env
 GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-3.6-flash
 ```
 
 3. Restart the server (`npm run dev`).
@@ -87,7 +87,7 @@ Without a key, a local Somali tutor fallback still answers using lesson content.
 PORT=3847
 JWT_SECRET=change-me
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-3.6-flash
 UPLOAD_DIR=uploads
 DB_PATH=data/tutor.db
 ```
