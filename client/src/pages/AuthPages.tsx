@@ -11,18 +11,24 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function doLogin(nextEmail: string, nextPassword: string) {
     setError('');
     setLoading(true);
+    setEmail(nextEmail);
+    setPassword(nextPassword);
     try {
-      const user = await login(email, password);
-      navigate(user.role === 'ADMIN' ? '/admin' : '/app');
+      const user = await login(nextEmail, nextPassword);
+      navigate(user.role === 'ADMIN' ? '/admin' : '/app', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    await doLogin(email, password);
   }
 
   return (
@@ -49,6 +55,24 @@ export function LoginPage() {
         >
           {loading ? 'Gelenaya...' : 'Login'}
         </button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => doLogin('ahmed@student.so', 'password123')}
+            className="rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-xs font-semibold text-ink hover:bg-sea-light disabled:opacity-60"
+          >
+            Demo Student
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => doLogin('admin@somalilearn.so', 'password123')}
+            className="rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-xs font-semibold text-ink hover:bg-sea-light disabled:opacity-60"
+          >
+            Demo Admin
+          </button>
+        </div>
         <div className="rounded-xl bg-sea-light/70 p-3 text-xs text-sea-dark">
           <div>Student: ahmed@student.so / password123</div>
           <div>Admin: admin@somalilearn.so / password123</div>
