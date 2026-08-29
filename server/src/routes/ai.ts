@@ -1,0 +1,111 @@
+import { Router } from 'express';
+import { v4 as uuid } from 'uuid';
+import { z } from 'zod';
+import { db } from '../db.js';
+import { authRequired, requireRole } from '../middleware/auth.js';
+import { generateTutorReply, retrieveRelevantChunks } from '../services/ai.js';
+
+export const aiRouter = Router();
+
+aiRouter.post('/chat', authRequired, requireRole('STUDENT'), async (req, res) => {
+  const schema = z.object({
+    message: z.string().min(1).max(2000),
+    chatId: z.string().optional(),
+    courseId: z.string().optional(),
+    lessonId: z.string().optional(),
+    exerciseId: z.string().optional(),
+    exerciseHint: z.boolean().optional(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Fariin lama helin.' });
+
+  let chatId = parsed.data.chatId;
+  if (!chatId) {
+    chatId = uuid();
+    db.prepare(
+      `INSERT INTO chat_sessions (id, student_id, course_id, lesson_id, exercise_id) VALUES (?, ?, ?, ?, ?)`
+    ).run(chatId, req.user!.id, parsed.data.courseId || null, parsed.data.lessonId || null, parsed.data.exerciseId || null);
+  }
+
+  db.prepare(`INSERT INTO chat_messages (id, chat_id, sender, message) VALUES (?, ?, 'student', ?)`).run(
+    uuid(),
+    chatId,
+    parsed.data.message
+  );
+
+  let lessonTitle: string | undefined;
+  let courseTitle: string | undefined;
+  let lessonContent: string | undefined;
+  let contextChunks: string[] = [];
+
+  if (parsed.data.lessonId) {
+    const lesson = db
+      .prepare(
+        `SELECT l.title, l.content, c.title as course_title
+         FROM lessons l JOIN modules m ON m.id = l.module_id JOIN courses c ON c.id = m.course_id
+         WHERE l.id = ?`
+      )
+      .get(parsed.data.lessonId) as { title: string; content: string; course_title: string } | undefined;
+    if (lesson) {
+      lessonTitle = lesson.title;
+      courseTitle = lesson.course_title;
+      lessonContent = lesson.content;
+    }
+    const chunks = db
+      .prepare(`SELECT id, content FROM lesson_chunks WHERE lesson_id = ? ORDER BY chunk_index`)
+      .all(parsed.data.lessonId) as { id: string; content: string }[];
+    contextChunks = retrieveRelevantChunks(chunks, parsed.data.message);
+  }
+
+  const reply = await generateTutorReply({
+    question: parsed.data.message,
+    lessonTitle,
+    courseTitle,
+    lessonContent,
+    contextChunks,
+    exerciseHint: parsed.data.exerciseHint,
+  });
+
+  db.prepare(`INSERT INTO chat_messages (id, chat_id, sender, message) VALUES (?, ?, 'ai', ?)`).run(
+    uuid(),
+    chatId,
+    reply
+  );
+
+  res.json({ chatId, reply });
+});
+
+aiRouter.get('/history', authRequired, requireRole('STUDENT'), (req, res) => {
+  const lessonId = req.query.lessonId as string | undefined;
+  let session: { id: string } | undefined;
+  if (lessonId) {
+    session = db
+      .prepare(
+        `SELECT id FROM chat_sessions WHERE student_id = ? AND lesson_id = ? ORDER BY created_at DESC LIMIT 1`
+      )
+      .get(req.user!.id, lessonId) as { id: string } | undefined;
+  } else {
+    session = db
+      .prepare(`SELECT id FROM chat_sessions WHERE student_id = ? ORDER BY created_at DESC LIMIT 1`)
+      .get(req.user!.id) as { id: string } | undefined;
+  }
+
+  if (!session) return res.json({ chatId: null, messages: [] });
+
+  const messages = db
+    .prepare(`SELECT sender, message, created_at FROM chat_messages WHERE chat_id = ? ORDER BY created_at`)
+    .all(session.id);
+
+  res.json({ chatId: session.id, messages });
+});
+
+aiRouter.delete('/history', authRequired, requireRole('STUDENT'), (req, res) => {
+  const chatId = req.query.chatId as string | undefined;
+  if (!chatId) return res.status(400).json({ error: 'chatId required' });
+  const session = db
+    .prepare(`SELECT id FROM chat_sessions WHERE id = ? AND student_id = ?`)
+    .get(chatId, req.user!.id);
+  if (!session) return res.status(404).json({ error: 'Chat lama helin.' });
+  db.prepare(`DELETE FROM chat_messages WHERE chat_id = ?`).run(chatId);
+  res.json({ ok: true });
+});

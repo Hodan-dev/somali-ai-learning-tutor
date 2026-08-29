@@ -1,0 +1,60 @@
+const TOKEN_KEY = 'somali_tutor_token';
+const USER_KEY = 'somali_tutor_user';
+
+export type Role = 'ADMIN' | 'STUDENT';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  created_at?: string;
+}
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getStoredUser(): User | null {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
+export function setSession(token: string, user: User) {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+export async function api<T = unknown>(
+  path: string,
+  options: RequestInit & { json?: unknown } = {}
+): Promise<T> {
+  const headers = new Headers(options.headers || {});
+  const token = getToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  if (options.json !== undefined) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const res = await fetch(path, {
+    ...options,
+    headers,
+    body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data as { error?: string }).error || 'Khalad ayaa dhacay');
+  }
+  return data as T;
+}
