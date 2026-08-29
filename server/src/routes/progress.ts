@@ -62,17 +62,19 @@ progressRouter.get('/', authRequired, requireRole('STUDENT'), (req, res) => {
   // Continue learning target
   const continueTarget = db
     .prepare(
-      `SELECT l.id as lesson_id, l.title as lesson_title, c.id as course_id, c.title as course_title, c.category
+      `SELECT l.id as lesson_id, l.title as lesson_title, c.id as course_id, c.title as course_title, c.category,
+        (SELECT COUNT(*) FROM lesson_progress lp2 WHERE lp2.student_id = ? AND lp2.course_id = c.id AND lp2.completed = 1) as done_in_course,
+        (SELECT MAX(lp3.last_accessed) FROM lesson_progress lp3 WHERE lp3.student_id = ? AND lp3.course_id = c.id) as last_touch
        FROM lessons l
        JOIN modules m ON m.id = l.module_id
        JOIN courses c ON c.id = m.course_id
        JOIN enrollments e ON e.course_id = c.id AND e.student_id = ?
        LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.student_id = ?
        WHERE l.status = 'published' AND (lp.completed IS NULL OR lp.completed = 0)
-       ORDER BY c.category, m.sort_order, l.sort_order
+       ORDER BY done_in_course DESC, COALESCE(last_touch, '') DESC, c.category, m.sort_order, l.sort_order
        LIMIT 1`
     )
-    .get(req.user!.id, req.user!.id);
+    .get(req.user!.id, req.user!.id, req.user!.id, req.user!.id);
 
   res.json({
     overall,
