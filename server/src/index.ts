@@ -13,6 +13,7 @@ import { aiRouter } from './routes/ai.js';
 import { adminRouter } from './routes/admin.js';
 import { authRequired } from './middleware/auth.js';
 import { db } from './db.js';
+import { getAiProviderStatus } from './services/ai.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3847);
@@ -24,7 +25,9 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, name: 'Somali AI Learning Tutor' }));
+app.get('/api/health', (_req, res) =>
+  res.json({ ok: true, name: 'Somali AI Learning Tutor', ai: getAiProviderStatus() })
+);
 
 app.use('/api/auth', authRouter);
 app.use('/api/courses', coursesRouter);

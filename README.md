@@ -10,7 +10,7 @@ A Somali-friendly educational web platform where students learn **Physics**, **B
 - **Backend:** Node.js + Express
 - **Database:** SQLite (Better SQLite3)
 - **Auth:** JWT + bcrypt (roles: `ADMIN`, `STUDENT`)
-- **AI:** Lesson-aware tutor via optional OpenAI API, with a built-in Somali tutor fallback
+- **AI:** Google AI Studio (Gemini), with a built-in Somali tutor fallback
 
 ## Quick start
 
@@ -62,12 +62,20 @@ Each course includes modules, lessons (with Somali explanations), and exercises.
 - Create text lessons & exercises
 - View students and per-student progress
 
-## AI Tutor
+## AI Tutor (Google AI Studio)
 
-Set `OPENAI_API_KEY` in `server/.env` to use OpenAI (`gpt-4o-mini`).  
-Without a key, the local Somali tutor still answers using lesson chunks (keyword retrieval).
+1. Open [Google AI Studio](https://aistudio.google.com/apikey) and create an API key.
+2. Put it in `server/.env`:
 
-PDF upload flow: Admin uploads PDF → text extraction → chunking → stored for retrieval → student questions get lesson-aware answers.
+```env
+GOOGLE_AI_API_KEY=your_key_here
+GOOGLE_AI_MODEL=gemini-2.0-flash
+```
+
+3. Restart the server (`npm run dev`).
+
+The backend calls Gemini at `generativelanguage.googleapis.com` — the key never goes to the browser.  
+Without a key, a local Somali tutor fallback still answers using lesson content.
 
 ## Environment
 
@@ -76,7 +84,8 @@ PDF upload flow: Admin uploads PDF → text extraction → chunking → stored f
 ```env
 PORT=3847
 JWT_SECRET=change-me
-OPENAI_API_KEY=
+GOOGLE_AI_API_KEY=
+GOOGLE_AI_MODEL=gemini-2.0-flash
 UPLOAD_DIR=uploads
 DB_PATH=data/tutor.db
 ```

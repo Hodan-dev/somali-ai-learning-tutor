@@ -44,6 +44,28 @@ export function chunkText(text: string, size = 600): { id: string; content: stri
   return parts;
 }
 
+function getGoogleAiApiKey(): string | undefined {
+  return (
+    process.env.GOOGLE_AI_API_KEY?.trim() ||
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() ||
+    undefined
+  );
+}
+
+function getGoogleAiModel(): string {
+  return process.env.GOOGLE_AI_MODEL?.trim() || 'gemini-2.0-flash';
+}
+
+export function getAiProviderStatus() {
+  const key = getGoogleAiApiKey();
+  return {
+    provider: 'google-ai-studio',
+    configured: Boolean(key),
+    model: getGoogleAiModel(),
+  };
+}
+
 export async function generateTutorReply(params: {
   question: string;
   lessonTitle?: string;
@@ -52,39 +74,76 @@ export async function generateTutorReply(params: {
   contextChunks?: string[];
   exerciseHint?: boolean;
 }): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = getGoogleAiApiKey();
   const system = buildSystemPrompt(params);
 
   if (apiKey) {
     try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          temperature: 0.6,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: params.question },
-          ],
-        }),
+      const reply = await callGoogleAiStudio({
+        apiKey,
+        system,
+        question: params.question,
       });
-      if (res.ok) {
-        const data = (await res.json()) as {
-          choices?: { message?: { content?: string } }[];
-        };
-        const text = data.choices?.[0]?.message?.content?.trim();
-        if (text) return text;
-      }
-    } catch {
-      // fall through to local tutor
+      if (reply) return reply;
+    } catch (err) {
+      console.error('Google AI Studio request failed:', err);
     }
   }
 
   return localSomaliTutor(params);
+}
+
+async function callGoogleAiStudio(opts: {
+  apiKey: string;
+  system: string;
+  question: string;
+}): Promise<string | null> {
+  const model = getGoogleAiModel();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': opts.apiKey,
+    },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: opts.system }],
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: opts.question }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.6,
+        maxOutputTokens: 1024,
+      },
+    }),
+  });
+
+  const data = (await res.json()) as {
+    error?: { message?: string };
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+      finishReason?: string;
+    }>;
+  };
+
+  if (!res.ok) {
+    console.error('Google AI Studio error:', data.error?.message || res.status);
+    return null;
+  }
+
+  const text = data.candidates
+    ?.flatMap((c) => c.content?.parts || [])
+    .map((p) => p.text || '')
+    .join('')
+    .trim();
+
+  return text || null;
 }
 
 function buildSystemPrompt(params: {
@@ -103,12 +162,13 @@ function buildSystemPrompt(params: {
 
   return `You are Macallinka AI (Somali AI Tutor) for Somali students.
 Rules:
-1. Explain clearly in simple Somali when appropriate; keep technical terms (HTML, force, cell, etc.) in English when useful.
+1. Explain clearly in simple Somali when appropriate; keep technical terms (force, cell, atom, etc.) in English when useful.
 2. Teach step-by-step. Do not overwhelm beginners.
 3. For exercises, give hints before full answers. If asked for the answer immediately, first encourage understanding.
 4. Explain why wrong answers are wrong.
 5. Encourage students with positive feedback.
 6. Stay relevant to the current lesson.
+7. Keep answers concise unless the student asks for more detail.
 
 Current course: ${params.courseTitle || 'N/A'}
 Current lesson: ${params.lessonTitle || 'N/A'}
@@ -143,7 +203,9 @@ function localSomaliTutor(params: {
 
 Marka hore, isku day inaad xasuusato fikradda ugu muhiimsan ee **${lesson}**.
 
-${context ? `Xusuuso casharka:\n"${context.slice(0, 220)}..."\n\n` : ''}Hint: U fiirso ereyada muhiimka ah ee casharka, ka dibna isku day inaad jawaabta samayso. Haddii aad wali xumaato, weydii hint kale. Si fiican ayaad u baranaysaa! 👏`;
+${context ? `Xusuuso casharka:\n"${context.slice(0, 220)}..."\n\n` : ''}Hint: U fiirso ereyada muhiimka ah ee casharka, ka dibna isku day inaad jawaabta samayso. Haddii aad wali xumaato, weydii hint kale. Si fiican ayaad u baranaysaa! 👏
+
+(Google AI Studio API key lama helin — geli GOOGLE_AI_API_KEY server/.env.)`;
   }
 
   if (q.includes('hint') || q.includes('tilmaan')) {
