@@ -3,8 +3,11 @@ import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
+import { cacheJson } from '../middleware/cache.js';
 
 export const coursesRouter = Router();
+const listCache = cacheJson(30_000);
+const detailCache = cacheJson(20_000);
 
 function courseStats(courseId: string) {
   const lessons = db
@@ -38,7 +41,7 @@ function studentCourseProgress(studentId: string, courseId: string) {
   return { completedLessons: done.c, totalLessons: total.c, progress: pct };
 }
 
-coursesRouter.get('/', authRequired, (req, res) => {
+coursesRouter.get('/', authRequired, listCache, (req, res) => {
   const courses = db
     .prepare(`SELECT id, title, description, category, difficulty, thumbnail, created_at FROM courses ORDER BY category, title`)
     .all() as Array<Record<string, unknown>>;
@@ -54,7 +57,7 @@ coursesRouter.get('/', authRequired, (req, res) => {
   res.json({ courses: result });
 });
 
-coursesRouter.get('/:id', authRequired, (req, res) => {
+coursesRouter.get('/:id', authRequired, detailCache, (req, res) => {
   const courseId = String(req.params.id);
   const course = db.prepare(`SELECT * FROM courses WHERE id = ?`).get(courseId) as
     | Record<string, unknown>

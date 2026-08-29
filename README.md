@@ -26,6 +26,22 @@ npm run dev
 - App: [http://127.0.0.1:3850](http://127.0.0.1:3850)
 - API: [http://127.0.0.1:3847](http://127.0.0.1:3847)
 
+### Faster loading (cached production mode)
+
+For the fastest startup and repeat visits, build once and serve everything from one port with browser + server caching:
+
+```bash
+npm run start:fast
+```
+
+Then open **http://127.0.0.1:3847** (API + cached frontend on the same port).
+
+What this enables:
+- **PWA service worker** caches JS/CSS/fonts in the browser
+- **Gzip compression** on API responses
+- **Memory cache** on course list API (`X-Cache: HIT` header)
+- **Lazy-loaded pages** so the first screen loads smaller bundles
+
 ## Demo accounts
 
 | Role    | Email                   | Password     |
