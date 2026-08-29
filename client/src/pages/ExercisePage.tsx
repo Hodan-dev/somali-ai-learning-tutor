@@ -183,22 +183,24 @@ export function ExercisePage() {
 
         <div className="mt-5 space-y-2">
           {q.options?.map((opt) => (
-            <label
+            <button
               key={opt}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition ${
+              type="button"
+              onClick={() => setAnswer(opt)}
+              className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
                 answer === opt ? 'border-sea bg-sea-light' : 'border-teal-100 hover:bg-slate-50'
               }`}
             >
-              <input
-                type="radio"
-                name="answer"
-                value={opt}
-                checked={answer === opt}
-                onChange={() => setAnswer(opt)}
-                className="accent-sea"
-              />
+              <span
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                  answer === opt ? 'border-sea bg-sea' : 'border-slate-300'
+                }`}
+                aria-hidden
+              >
+                {answer === opt && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+              </span>
               {opt}
-            </label>
+            </button>
           ))}
           {!q.options && (
             <input
