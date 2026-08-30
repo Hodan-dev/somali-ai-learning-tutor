@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
 import { chunkText } from '../services/ai.js';
+import { placeholderPdfContent, queuePdfProcessing } from '../services/pdfProcessing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadDir = path.join(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads');
@@ -43,19 +44,6 @@ lessonsRouter.get('/', authRequired, requireRole('ADMIN'), (_req, res) => {
     .all();
   res.json({ lessons });
 });
-
-async function extractPdfText(filePath: string): Promise<string> {
-  try {
-    const mod = await import('pdf-parse');
-    const pdfParse = (mod as { default?: (b: Buffer) => Promise<{ text: string }> }).default
-      || (mod as unknown as (b: Buffer) => Promise<{ text: string }>);
-    const buffer = fs.readFileSync(filePath);
-    const data = await pdfParse(buffer);
-    return (data.text || '').trim();
-  } catch {
-    return '';
-  }
-}
 
 lessonsRouter.get('/:id', authRequired, (req, res) => {
   const lesson = db
@@ -238,10 +226,7 @@ lessonsRouter.post(
         return res.status(400).json({ error: 'PDF, title, iyo module ayaa loo baahan yahay.' });
       }
 
-      const extracted = await extractPdfText(req.file.path);
-      const content =
-        extracted ||
-        `# ${parsed.data.title}\n\nCasharkan waxaa laga soo raray PDF. Akhri faylka PDF-ka si aad u barato.\n\n(PDF text extraction lama helin — faylka wali waa la heli karaa.)`;
+      const content = placeholderPdfContent(parsed.data.title);
 
       const max = db
         .prepare(`SELECT COALESCE(MAX(sort_order), -1) as m FROM lessons WHERE module_id = ?`)
@@ -263,17 +248,14 @@ lessonsRouter.post(
         req.user!.id
       );
 
-      const insertChunk = db.prepare(`INSERT INTO lesson_chunks (id, lesson_id, content, chunk_index) VALUES (?, ?, ?, ?)`);
-      for (const ch of chunkText(content)) {
-        insertChunk.run(ch.id, id, ch.content, ch.chunk_index);
-      }
+      queuePdfProcessing(id, req.file.path, parsed.data.title);
 
       res.status(201).json({
         lesson: {
           id,
           title: parsed.data.title,
           pdfUrl,
-          extractedChars: extracted.length,
+          processing: true,
         },
       });
     } catch (e) {
