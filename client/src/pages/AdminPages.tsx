@@ -1,8 +1,36 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Plus, Trash2 } from 'lucide-react';
 import { api, getToken } from '../lib/api';
 import { Badge, ErrorBox, Loading, ProgressBar, CourseProgressRow } from '../components/ui';
 import { SearchableSelect } from '../components/SearchableSelect';
+
+type PdfLessonDraft = { key: string; title: string; file: File | null };
+type ModuleDraft = { key: string; title: string; pdfLessons: PdfLessonDraft[] };
+
+function newPdfLesson(): PdfLessonDraft {
+  return { key: crypto.randomUUID(), title: '', file: null };
+}
+
+function newModule(index: number): ModuleDraft {
+  return { key: crypto.randomUUID(), title: `Module ${index}`, pdfLessons: [newPdfLesson()] };
+}
+
+async function uploadPdfLesson(moduleId: string, title: string, file: File) {
+  const fd = new FormData();
+  fd.append('pdf', file);
+  fd.append('moduleId', moduleId);
+  fd.append('title', title);
+  fd.append('description', title);
+  const res = await fetch('/api/lessons/upload', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: fd,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'PDF upload failed');
+  return data;
+}
 
 export function AdminDashboard() {
   const [data, setData] = useState<{
@@ -95,7 +123,8 @@ export function AdminCoursesPage() {
     category: 'Physics',
     difficulty: 'Beginner',
   });
-  const [moduleForm, setModuleForm] = useState({ courseId: '', title: '' });
+  const [moduleDrafts, setModuleDrafts] = useState<ModuleDraft[]>([newModule(1)]);
+  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
 
@@ -112,31 +141,66 @@ export function AdminCoursesPage() {
     load().catch((e) => setError(e.message));
   }, []);
 
-  async function createCourse(e: FormEvent) {
-    e.preventDefault();
-    setMsg('');
-    try {
-      await api('/api/courses', { method: 'POST', json: form });
-      setForm({ title: '', description: '', category: 'Physics', difficulty: 'Beginner' });
-      setMsg('Koorso waa la abuuray.');
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
-    }
+  function resetBuilder() {
+    setForm({ title: '', description: '', category: 'Physics', difficulty: 'Beginner' });
+    setModuleDrafts([newModule(1)]);
   }
 
-  async function createModule(e: FormEvent) {
+  function updateModule(key: string, patch: Partial<ModuleDraft>) {
+    setModuleDrafts((mods) => mods.map((m) => (m.key === key ? { ...m, ...patch } : m)));
+  }
+
+  function updatePdfLesson(moduleKey: string, lessonKey: string, patch: Partial<PdfLessonDraft>) {
+    setModuleDrafts((mods) =>
+      mods.map((m) =>
+        m.key !== moduleKey
+          ? m
+          : {
+              ...m,
+              pdfLessons: m.pdfLessons.map((l) => (l.key === lessonKey ? { ...l, ...patch } : l)),
+            }
+      )
+    );
+  }
+
+  async function createFullCourse(e: FormEvent) {
     e.preventDefault();
+    setSaving(true);
+    setError('');
+    setMsg('');
     try {
-      await api(`/api/courses/${moduleForm.courseId}/modules`, {
+      const validModules = moduleDrafts.filter((m) => m.title.trim());
+      if (!validModules.length) throw new Error('Add at least one module.');
+
+      const { course } = await api<{ course: { id: string } }>('/api/courses', {
         method: 'POST',
-        json: { title: moduleForm.title },
+        json: form,
       });
-      setModuleForm({ courseId: '', title: '' });
-      setMsg('Module waa la abuuray.');
+
+      let moduleCount = 0;
+      let lessonCount = 0;
+
+      for (const mod of validModules) {
+        const { module } = await api<{ module: { id: string } }>(`/api/courses/${course.id}/modules`, {
+          method: 'POST',
+          json: { title: mod.title.trim() },
+        });
+        moduleCount += 1;
+
+        for (const les of mod.pdfLessons) {
+          if (!les.title.trim() || !les.file) continue;
+          await uploadPdfLesson(module.id, les.title.trim(), les.file);
+          lessonCount += 1;
+        }
+      }
+
+      setMsg(`Done! Course + ${moduleCount} module(s) + ${lessonCount} PDF lesson(s) created.`);
+      resetBuilder();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
+      setError(err instanceof Error ? err.message : 'Could not create course');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -146,106 +210,177 @@ export function AdminCoursesPage() {
     await load();
   }
 
+  const modulesByCourse = modules.reduce<Record<string, typeof modules>>((acc, m) => {
+    (acc[m.course_id] ||= []).push(m);
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl font-bold">Koorsooyinka</h1>
+      <div>
+        <h1 className="font-display text-3xl font-bold">Koorsooyinka</h1>
+        <p className="mt-1 text-sm text-muted">Create course, modules, and PDF lessons in one step.</p>
+      </div>
       {error && <ErrorBox message={error} />}
       {msg && <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">{msg}</div>}
 
-      <form onSubmit={createCourse} className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-5 md:grid-cols-2">
-        <h2 className="font-display text-lg font-semibold md:col-span-2">Create Course</h2>
-        <input
-          className="input"
-          placeholder="Title"
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          required
-        />
-        <SearchableSelect
-          className="input"
-          value={form.category}
-          onChange={(category) => setForm({ ...form, category })}
-          options={['Physics', 'Biology', 'English', 'Chemistry', 'Mathematics'].map((c) => ({
-            value: c,
-            label: c,
-          }))}
-          placeholder="Category"
-          searchPlaceholder="Search category..."
-        />
-        <textarea
-          className="input md:col-span-2"
-          placeholder="Description"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          required
-        />
-        <SearchableSelect
-          className="input"
-          value={form.difficulty}
-          onChange={(difficulty) => setForm({ ...form, difficulty })}
-          options={['Beginner', 'Intermediate', 'Advanced'].map((d) => ({ value: d, label: d }))}
-          placeholder="Difficulty"
-          searchPlaceholder="Search difficulty..."
-        />
-        <button type="submit" className="rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white">
-          Create
-        </button>
-      </form>
+      <form onSubmit={createFullCourse} className="space-y-5 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink">Create full course</h2>
+          <p className="mt-1 text-sm text-muted">Course details, modules, and PDF uploads — all in one form.</p>
+        </div>
 
-      <form onSubmit={createModule} className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-5 md:grid-cols-3">
-        <h2 className="font-display text-lg font-semibold md:col-span-3">Add Module</h2>
-        <SearchableSelect
-          className="input"
-          value={moduleForm.courseId}
-          onChange={(courseId) => setModuleForm({ ...moduleForm, courseId })}
-          options={[
-            { value: '', label: 'Select course' },
-            ...courses.map((c) => ({ value: c.id, label: c.title })),
-          ]}
-          placeholder="Select course"
-          searchPlaceholder="Search courses..."
-          required
-        />
-        <input
-          className="input"
-          placeholder="Module title"
-          value={moduleForm.title}
-          onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
-          required
-        />
-        <button type="submit" className="rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white">
-          Add Module
-        </button>
-      </form>
+        <div className="grid gap-3 md:grid-cols-2">
+          <input
+            className="input"
+            placeholder="Course title"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            required
+          />
+          <SearchableSelect
+            className="input"
+            value={form.category}
+            onChange={(category) => setForm({ ...form, category })}
+            options={['Physics', 'Biology', 'English', 'Chemistry', 'Mathematics'].map((c) => ({
+              value: c,
+              label: c,
+            }))}
+            placeholder="Category"
+            searchPlaceholder="Search category..."
+          />
+          <textarea
+            className="input md:col-span-2"
+            placeholder="Short description"
+            rows={2}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            required
+          />
+          <SearchableSelect
+            className="input"
+            value={form.difficulty}
+            onChange={(difficulty) => setForm({ ...form, difficulty })}
+            options={['Beginner', 'Intermediate', 'Advanced'].map((d) => ({ value: d, label: d }))}
+            placeholder="Difficulty"
+            searchPlaceholder="Search difficulty..."
+          />
+        </div>
 
-      <div className="grid gap-3">
-        {courses.map((c) => (
-          <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-white p-4">
-            <div>
-              <div className="font-semibold">{c.title}</div>
-              <div className="text-sm text-muted">
-                {c.category} · {c.difficulty} · {c.lessonCount} lessons
-              </div>
-            </div>
-            <button type="button" onClick={() => remove(c.id)} className="text-sm text-danger hover:underline">
-              Delete
+        <div className="space-y-4 border-t border-blue-50 pt-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-display font-semibold text-ink">Modules & PDF lessons</h3>
+            <button
+              type="button"
+              onClick={() => setModuleDrafts((mods) => [...mods, newModule(mods.length + 1)])}
+              className="inline-flex items-center gap-1 rounded-lg border border-blue-100 px-3 py-1.5 text-xs font-semibold text-sea hover:bg-blue-50"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add module
             </button>
           </div>
-        ))}
-      </div>
 
-      <div className="rounded-2xl border border-blue-100 bg-white p-4">
-        <h3 className="font-semibold">Modules</h3>
-        <ul className="mt-3 space-y-2 text-sm">
-          {modules.map((m) => (
-            <li key={m.id}>
-              {m.course_title} → {m.title} <span className="text-xs text-muted">({m.id.slice(0, 8)})</span>
-            </li>
+          {moduleDrafts.map((mod, mi) => (
+            <div key={mod.key} className="rounded-xl border border-blue-100 bg-slate-50/80 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  className="input min-w-[12rem] flex-1"
+                  placeholder={`Module ${mi + 1} title`}
+                  value={mod.title}
+                  onChange={(e) => updateModule(mod.key, { title: e.target.value })}
+                  required
+                />
+                {moduleDrafts.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setModuleDrafts((mods) => mods.filter((m) => m.key !== mod.key))}
+                    className="rounded-lg p-2 text-danger hover:bg-red-50"
+                    aria-label="Remove module"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {mod.pdfLessons.map((les) => (
+                  <div key={les.key} className="grid gap-2 rounded-lg border border-blue-50 bg-white p-3 sm:grid-cols-[1fr_1fr_auto]">
+                    <input
+                      className="input"
+                      placeholder="PDF lesson title"
+                      value={les.title}
+                      onChange={(e) => updatePdfLesson(mod.key, les.key, { title: e.target.value })}
+                    />
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="input text-sm file:mr-2 file:rounded-lg file:border-0 file:bg-sea-light file:px-3 file:py-1 file:text-xs file:font-semibold file:text-sea-dark"
+                      onChange={(e) => updatePdfLesson(mod.key, les.key, { file: e.target.files?.[0] || null })}
+                    />
+                    {mod.pdfLessons.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateModule(mod.key, {
+                            pdfLessons: mod.pdfLessons.filter((l) => l.key !== les.key),
+                          })
+                        }
+                        className="rounded-lg p-2 text-muted hover:bg-slate-100 sm:justify-self-end"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateModule(mod.key, { pdfLessons: [...mod.pdfLessons, newPdfLesson()] })
+                  }
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-sea hover:underline"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add PDF to this module
+                </button>
+              </div>
+            </div>
           ))}
-        </ul>
-      </div>
+        </div>
 
-      <style>{`.input{width:100%;border-radius:0.75rem;border:1px solid #d5e3e2;padding:0.65rem 0.85rem;background:#f8fafc}`}</style>
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full rounded-xl bg-sea px-4 py-3 text-sm font-semibold text-white hover:bg-sea-dark disabled:opacity-60 sm:w-auto"
+        >
+          {saving ? 'Creating course...' : 'Create course with modules & PDFs'}
+        </button>
+      </form>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-lg font-semibold">Existing courses</h2>
+        {courses.map((c) => (
+          <div key={c.id} className="rounded-2xl border border-blue-100 bg-white p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="font-semibold text-ink">{c.title}</div>
+                <div className="text-sm text-muted">
+                  {c.category} · {c.difficulty} · {c.lessonCount} lessons
+                </div>
+              </div>
+              <button type="button" onClick={() => remove(c.id)} className="text-sm text-danger hover:underline">
+                Delete
+              </button>
+            </div>
+            {(modulesByCourse[c.id] || []).length > 0 && (
+              <ul className="mt-3 space-y-1 border-t border-blue-50 pt-3 text-sm text-muted">
+                {(modulesByCourse[c.id] || []).map((m) => (
+                  <li key={m.id}>· {m.title}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </section>
+
+      <style>{`.input{width:100%;border-radius:0.75rem;border:1px solid #dbeafe;padding:0.65rem 0.85rem;background:#f8fafc}`}</style>
     </div>
   );
 }
@@ -257,8 +392,6 @@ export function AdminLessonsPage() {
   const [modules, setModules] = useState<Array<{ id: string; title: string; course_title: string }>>([]);
   const [moduleId, setModuleId] = useState('');
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [file, setFile] = useState<File | null>(null);
   const [content, setContent] = useState('');
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -276,37 +409,11 @@ export function AdminLessonsPage() {
     load().catch((e) => setError(e.message));
   }, []);
 
-  async function uploadPdf(e: FormEvent) {
-    e.preventDefault();
-    if (!file || !moduleId || !title) return;
-    setError('');
-    const fd = new FormData();
-    fd.append('pdf', file);
-    fd.append('moduleId', moduleId);
-    fd.append('title', title);
-    fd.append('description', description);
-    const res = await fetch('/api/lessons/upload', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${getToken()}` },
-      body: fd,
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || 'Upload failed');
-      return;
-    }
-    setMsg(`PDF uploaded: ${data.lesson.title} (${data.lesson.extractedChars} chars extracted)`);
-    setTitle('');
-    setDescription('');
-    setFile(null);
-    await load();
-  }
-
   async function addTextLesson(e: FormEvent) {
     e.preventDefault();
     await api('/api/lessons', {
       method: 'POST',
-      json: { moduleId, title, description, content },
+      json: { moduleId, title, description: title, content },
     });
     setMsg('Lesson created.');
     setContent('');
@@ -322,34 +429,21 @@ export function AdminLessonsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl font-bold">Casharrada</h1>
+      <div>
+        <h1 className="font-display text-3xl font-bold">Casharrada</h1>
+        <p className="mt-1 text-sm text-muted">
+          New courses with PDFs: use{' '}
+          <Link to="/admin/courses" className="font-semibold text-sea hover:underline">
+            Koorsooyinka
+          </Link>
+          . Add text-only lessons to existing modules below.
+        </p>
+      </div>
       {error && <ErrorBox message={error} />}
       {msg && <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">{msg}</div>}
 
-      <form onSubmit={uploadPdf} className="space-y-3 rounded-2xl border border-blue-100 bg-white p-5">
-        <h2 className="font-display text-lg font-semibold">Upload Lesson PDF</h2>
-        <SearchableSelect
-          className="w-full"
-          value={moduleId}
-          onChange={setModuleId}
-          options={[
-            { value: '', label: 'Select module' },
-            ...modules.map((m) => ({ value: m.id, label: `${m.course_title} — ${m.title}` })),
-          ]}
-          placeholder="Select module"
-          searchPlaceholder="Search modules..."
-          required
-        />
-        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Lesson title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-        <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
-        <button type="submit" className="rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white">
-          Upload & Process PDF
-        </button>
-      </form>
-
       <form onSubmit={addTextLesson} className="space-y-3 rounded-2xl border border-blue-100 bg-white p-5">
-        <h2 className="font-display text-lg font-semibold">Add Text Lesson</h2>
+        <h2 className="font-display text-lg font-semibold">Add text lesson (existing module)</h2>
         <SearchableSelect
           className="w-full"
           value={moduleId}

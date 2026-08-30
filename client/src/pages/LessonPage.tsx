@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Bot, Check, Menu, Send, Trash2, X } from 'lucide-react';
 import { api, getToken } from '../lib/api';
 import { Badge, ErrorBox, LessonContent, Loading } from '../components/ui';
+import { PdfViewer } from '../components/PdfViewer';
 
 interface LessonData {
   lesson: {
@@ -216,17 +217,10 @@ export function LessonPage() {
         <LessonContent content={lesson.content} />
 
         {lesson.pdf_url && (
-          <div className="mt-6 rounded-xl border border-blue-100 bg-sea-light/50 p-4">
+          <div className="mt-6 rounded-xl border border-blue-100 bg-sea-light/30 p-3 sm:p-4">
             <div className="font-semibold text-ink">PDF Lesson</div>
-            <a
-              href={lesson.pdf_url}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex text-sm font-medium text-sea hover:underline"
-            >
-              Open / Download PDF
-            </a>
-            <iframe title="PDF preview" src={lesson.pdf_url} className="mt-3 h-72 w-full rounded-lg border border-blue-100" />
+            <p className="mt-1 text-sm text-muted">Scroll inside the viewer — it fits your screen size.</p>
+            <PdfViewer url={lesson.pdf_url} title={lesson.title} />
           </div>
         )}
 
