@@ -142,7 +142,7 @@ export function LessonPage() {
   const { lesson, curriculum } = data;
 
   return (
-    <div className="relative lg:grid lg:grid-cols-[240px_minmax(0,1fr)_300px] lg:gap-5">
+    <div className="relative lg:flex lg:max-h-[calc(100dvh-9.5rem)] lg:min-h-0 lg:gap-5 lg:overflow-hidden">
       {/* Mobile curriculum toggle */}
       <button
         type="button"
@@ -154,7 +154,7 @@ export function LessonPage() {
 
       {/* Left curriculum */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-blue-100 bg-white p-4 shadow-xl transition lg:static lg:z-auto lg:w-auto lg:rounded-2xl lg:border lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-blue-100 bg-white p-4 shadow-xl transition lg:relative lg:inset-auto lg:z-auto lg:flex lg:h-full lg:w-60 lg:shrink-0 lg:flex-col lg:rounded-2xl lg:border lg:shadow-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -206,8 +206,8 @@ export function LessonPage() {
         />
       )}
 
-      {/* Center content */}
-      <section className="rounded-2xl border border-blue-100 bg-white p-5 sm:p-7">
+      {/* Center content — only this column scrolls on desktop */}
+      <section className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-blue-100 bg-white p-5 sm:p-7">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Badge>{lesson.category}</Badge>
           <Badge tone="ink">{lesson.module_title}</Badge>
@@ -262,8 +262,8 @@ export function LessonPage() {
         </div>
       </section>
 
-      {/* Right AI panel */}
-      <aside className="mt-5 flex h-[520px] flex-col rounded-2xl border border-blue-100 bg-white lg:mt-0 lg:h-auto lg:min-h-[70vh]">
+      {/* Right AI panel — fixed height; chat scrolls inside */}
+      <aside className="mt-5 flex h-[520px] shrink-0 flex-col overflow-hidden rounded-2xl border border-blue-100 bg-white lg:mt-0 lg:h-full lg:w-[300px]">
         <div className="flex items-center justify-between border-b border-blue-50 px-4 py-3">
           <div className="flex items-center gap-2 font-display font-semibold">
             <Bot className="h-5 w-5 text-sea" /> Macallinka AI
