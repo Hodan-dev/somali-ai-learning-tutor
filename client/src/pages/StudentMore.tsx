@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ErrorBox, Loading, ProgressBar } from '../components/ui';
+import { CourseProgressRow, ErrorBox, Loading, ProgressBar } from '../components/ui';
 
 export function ProgressPage() {
   const [data, setData] = useState<{
@@ -55,15 +55,9 @@ export function ProgressPage() {
           <Link
             key={c.id}
             to={`/app/courses/${c.id}`}
-            className="flex items-center gap-3 rounded-xl border border-blue-100 bg-white px-3 py-2.5 hover:border-blue-200"
+            className="block rounded-xl border border-blue-100 bg-white px-3 py-2.5 hover:border-blue-200"
           >
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-ink">{c.title}</div>
-              <div className="mt-1.5">
-                <ProgressBar value={c.progress} />
-              </div>
-            </div>
-            <span className="shrink-0 text-sm font-bold text-sea">{c.progress}%</span>
+            <CourseProgressRow title={c.title} subtitle={c.category} progress={c.progress} />
           </Link>
         ))}
       </section>

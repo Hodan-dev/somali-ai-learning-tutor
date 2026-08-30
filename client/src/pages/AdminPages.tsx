@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, getToken } from '../lib/api';
-import { Badge, ErrorBox, Loading, ProgressBar } from '../components/ui';
+import { Badge, ErrorBox, Loading, ProgressBar, CourseProgressRow } from '../components/ui';
 
 export function AdminDashboard() {
   const [data, setData] = useState<{
@@ -554,18 +554,10 @@ export function AdminStudentDetailPage() {
           <Badge tone="ink">Avg Score: {data.averageScore}%</Badge>
         </div>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {data.courses.map((c, i) => (
-          <div key={i} className="rounded-xl border border-blue-100 bg-white p-4">
-            <div className="flex justify-between text-sm">
-              <span className="font-semibold">
-                {c.title} · {c.category}
-              </span>
-              <span className="text-sea">{c.progress}%</span>
-            </div>
-            <div className="mt-2">
-              <ProgressBar value={c.progress} />
-            </div>
+          <div key={i} className="rounded-xl border border-blue-100 bg-white px-3 py-2.5">
+            <CourseProgressRow title={c.title} subtitle={c.category} progress={c.progress} />
           </div>
         ))}
       </div>

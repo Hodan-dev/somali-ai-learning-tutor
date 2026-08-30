@@ -4,7 +4,7 @@ import cors from 'cors';
 import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { seedIfEmpty } from './seed.js';
+import { seedIfEmpty, syncContentCopy } from './seed.js';
 import { authRouter } from './routes/auth.js';
 import { coursesRouter } from './routes/courses.js';
 import { lessonsRouter } from './routes/lessons.js';
@@ -21,6 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3847);
 
 seedIfEmpty();
+syncContentCopy();
 
 const app = express();
 app.use(compression());

@@ -1,8 +1,34 @@
 export function ProgressBar({ value }: { value: number }) {
-  const v = Math.max(0, Math.min(100, value));
+  const v = Math.max(0, Math.min(100, Math.round(value)));
   return (
     <div className="progress-bar" aria-valuenow={v} aria-valuemin={0} aria-valuemax={100} role="progressbar">
       <span style={{ width: `${v}%` }} />
+    </div>
+  );
+}
+
+export function CourseProgressRow({
+  title,
+  progress,
+  subtitle,
+  className = '',
+}: {
+  title: string;
+  progress: number;
+  subtitle?: string;
+  className?: string;
+}) {
+  const pct = Math.max(0, Math.min(100, Math.round(progress)));
+  return (
+    <div className={`flex items-center gap-3 ${className}`}>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-ink">{title}</div>
+        {subtitle ? <div className="truncate text-xs text-muted">{subtitle}</div> : null}
+        <div className="mt-1.5">
+          <ProgressBar value={pct} />
+        </div>
+      </div>
+      <span className="shrink-0 text-sm font-bold text-sea">{pct}%</span>
     </div>
   );
 }

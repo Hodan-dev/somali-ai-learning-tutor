@@ -37,12 +37,12 @@ interface SeedCourse {
 const courses: SeedCourse[] = [
   {
     title: 'Physics Basics',
-    description: 'Baro aasaaska fiisigiska: dhaqdhaqaaqa, xoogga, tamarta, iyo mawjado.',
+    description: 'Aasaaska fiisigiska',
     category: 'Physics',
     difficulty: 'Beginner',
     modules: [
       {
-        title: 'Module 1 — Introduction to Physics',
+        title: 'Module 1',
         lessons: [
           {
             title: 'What is Physics?',
@@ -163,7 +163,7 @@ Markaad dhulka riixdo (jump), dhulku wuu kuu riixayaa kor.`,
         ],
       },
       {
-        title: 'Module 2 — Energy',
+        title: 'Module 2',
         lessons: [
           {
             title: 'Types of Energy',
@@ -200,12 +200,12 @@ Tamarta lama abuuro ama baabbi’in — waxay isbeddeshaa nooc kale.
   },
   {
     title: 'Biology Basics',
-    description: 'Baro unugyada, jirka, ecosystems, iyo aasaaska nolosha.',
+    description: 'Aasaaska bayooloji',
     category: 'Biology',
     difficulty: 'Beginner',
     modules: [
       {
-        title: 'Module 1 — Cells',
+        title: 'Module 1',
         lessons: [
           {
             title: 'What is a Cell?',
@@ -279,7 +279,7 @@ Tamarta lama abuuro ama baabbi’in — waxay isbeddeshaa nooc kale.
         ],
       },
       {
-        title: 'Module 2 — Human Body',
+        title: 'Module 2',
         lessons: [
           {
             title: 'Digestive System',
@@ -313,12 +313,12 @@ Nidaamka dheef-shiidku wuxuu jajabiyaa cuntada si jirku u qaato nafaqooyinka.
   },
   {
     title: 'English Basics',
-    description: 'Baro grammar, vocabulary, reading, iyo qorista aasaasiga ah.',
+    description: 'Aasaaska Ingiriisiga',
     category: 'English',
     difficulty: 'Beginner',
     modules: [
       {
-        title: 'Module 1 — Grammar Foundations',
+        title: 'Module 1',
         lessons: [
           {
             title: 'Nouns and Pronouns',
@@ -423,12 +423,12 @@ Waxaa loo isticmaalaa:
   },
   {
     title: 'Chemistry Basics',
-    description: 'Baro atoms, elements, compounds, iyo falcelinta kiimikada.',
+    description: 'Aasaaska kiimikada',
     category: 'Chemistry',
     difficulty: 'Beginner',
     modules: [
       {
-        title: 'Module 1 — Atoms and Elements',
+        title: 'Module 1',
         lessons: [
           {
             title: 'What is an Atom?',
@@ -497,7 +497,7 @@ Tusaale: **H₂O** (water) = Hydrogen + Oxygen
         ],
       },
       {
-        title: 'Module 2 — Reactions',
+        title: 'Module 2',
         lessons: [
           {
             title: 'Chemical Reactions Intro',
@@ -536,12 +536,12 @@ Tusaale:
   },
   {
     title: 'Mathematics Basics',
-    description: 'Baro algebra, geometry, iyo statistics aasaasiga ah.',
+    description: 'Aasaaska xisaabta',
     category: 'Mathematics',
     difficulty: 'Beginner',
     modules: [
       {
-        title: 'Module 1 — Algebra',
+        title: 'Module 1',
         lessons: [
           {
             title: 'Variables and Expressions',
@@ -615,7 +615,7 @@ Wixii aad ku sameyso dhinac, ku samee dhinaca kale.
         ],
       },
       {
-        title: 'Module 2 — Geometry',
+        title: 'Module 2',
         lessons: [
           {
             title: 'Angles and Shapes',
@@ -651,7 +651,7 @@ Sum of angles in a triangle = **180°**
         ],
       },
       {
-        title: 'Module 3 — Basic Statistics',
+        title: 'Module 3',
         lessons: [
           {
             title: 'Mean, Median, Mode',
@@ -796,4 +796,38 @@ export function seedIfEmpty() {
   console.log('Demo accounts:');
   console.log('  Admin:   admin@somalilearn.so / password123');
   console.log('  Student: ahmed@student.so / password123');
+}
+
+const SHORT_COURSE_DESCRIPTIONS: Record<string, string> = {
+  'Physics Basics': 'Aasaaska fiisigiska',
+  'Biology Basics': 'Aasaaska bayooloji',
+  'English Basics': 'Aasaaska Ingiriisiga',
+  'Chemistry Basics': 'Aasaaska kiimikada',
+  'Mathematics Basics': 'Aasaaska xisaabta',
+};
+
+const SHORT_MODULE_TITLES: Record<string, string> = {
+  'Module 1 — Introduction to Physics': 'Module 1',
+  'Module 2 — Energy': 'Module 2',
+  'Module 1 — Cells': 'Module 1',
+  'Module 2 — Human Body': 'Module 2',
+  'Module 1 — Grammar Foundations': 'Module 1',
+  'Module 1 — Atoms and Elements': 'Module 1',
+  'Module 2 — Reactions': 'Module 2',
+  'Module 1 — Algebra': 'Module 1',
+  'Module 2 — Geometry': 'Module 2',
+  'Module 3 — Basic Statistics': 'Module 3',
+};
+
+/** Keep course copy short in existing databases after UI refresh. */
+export function syncContentCopy() {
+  initDb();
+  const updateCourse = db.prepare('UPDATE courses SET description = ? WHERE title = ?');
+  for (const [title, description] of Object.entries(SHORT_COURSE_DESCRIPTIONS)) {
+    updateCourse.run(description, title);
+  }
+  const updateModule = db.prepare('UPDATE modules SET title = ? WHERE title = ?');
+  for (const [oldTitle, newTitle] of Object.entries(SHORT_MODULE_TITLES)) {
+    updateModule.run(newTitle, oldTitle);
+  }
 }
