@@ -168,13 +168,32 @@ export function AdminCoursesPage() {
     setSaving(true);
     setError('');
     setMsg('');
+
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      category: form.category.trim(),
+      difficulty: form.difficulty.trim() || 'Beginner',
+    };
+
+    if (payload.title.length < 2) {
+      setError('Course title must be at least 2 characters.');
+      setSaving(false);
+      return;
+    }
+    if (payload.description.length < 2) {
+      setError('Description must be at least 2 characters (e.g. "Baro fiisigiska").');
+      setSaving(false);
+      return;
+    }
+
     try {
       const validModules = moduleDrafts.filter((m) => m.title.trim());
       if (!validModules.length) throw new Error('Add at least one module.');
 
       const { course } = await api<{ course: { id: string } }>('/api/courses', {
         method: 'POST',
-        json: form,
+        json: payload,
       });
 
       let moduleCount = 0;
@@ -251,11 +270,12 @@ export function AdminCoursesPage() {
           />
           <textarea
             className="input md:col-span-2"
-            placeholder="Short description"
+            placeholder="Short description (min 2 characters)"
             rows={2}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             required
+            minLength={2}
           />
           <SearchableSelect
             className="input"

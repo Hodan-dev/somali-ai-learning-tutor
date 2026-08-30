@@ -114,14 +114,17 @@ coursesRouter.get('/:id', authRequired, detailCache, (req, res) => {
 
 coursesRouter.post('/', authRequired, requireRole('ADMIN'), (req, res) => {
   const schema = z.object({
-    title: z.string().min(2),
-    description: z.string().min(5),
-    category: z.string().min(2),
-    difficulty: z.string().default('Beginner'),
+    title: z.string().trim().min(2, 'Title must be at least 2 characters.'),
+    description: z.string().trim().min(2, 'Description must be at least 2 characters.'),
+    category: z.string().trim().min(2, 'Category is required.'),
+    difficulty: z.string().trim().min(2).default('Beginner'),
     sequential: z.boolean().optional(),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Macluumaadka koorsada ma saxna.' });
+  if (!parsed.success) {
+    const message = parsed.error.issues.map((i) => i.message).join(' ') || 'Macluumaadka koorsada ma saxna.';
+    return res.status(400).json({ error: message, details: parsed.error.flatten() });
+  }
 
   const id = uuid();
   db.prepare(
