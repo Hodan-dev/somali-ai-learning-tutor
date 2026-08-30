@@ -20,7 +20,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
       cb(null, true);
@@ -217,7 +216,13 @@ lessonsRouter.post(
   requireRole('ADMIN'),
   (req, res, next) => {
     upload.single('pdf')(req, res, (err) => {
-      if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
+      if (err) {
+        const message =
+          err instanceof Error && 'code' in err && err.code === 'LIMIT_FILE_SIZE'
+            ? 'PDF file is too large for the server configuration.'
+            : err.message || 'Upload failed';
+        return res.status(400).json({ error: message });
+      }
       next();
     });
   },
