@@ -146,7 +146,7 @@ export function LessonPage() {
       {/* Mobile curriculum toggle */}
       <button
         type="button"
-        className="mb-3 inline-flex items-center gap-2 rounded-lg border border-teal-100 bg-white px-3 py-2 text-sm lg:hidden"
+        className="mb-3 inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm lg:hidden"
         onClick={() => setSidebarOpen(true)}
       >
         <Menu className="h-4 w-4" /> Curriculum
@@ -154,7 +154,7 @@ export function LessonPage() {
 
       {/* Left curriculum */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-teal-100 bg-white p-4 shadow-xl transition lg:static lg:z-auto lg:w-auto lg:rounded-2xl lg:border lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-blue-100 bg-white p-4 shadow-xl transition lg:static lg:z-auto lg:w-auto lg:rounded-2xl lg:border lg:shadow-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -207,7 +207,7 @@ export function LessonPage() {
       )}
 
       {/* Center content */}
-      <section className="rounded-2xl border border-teal-100 bg-white p-5 sm:p-7">
+      <section className="rounded-2xl border border-blue-100 bg-white p-5 sm:p-7">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Badge>{lesson.category}</Badge>
           <Badge tone="ink">{lesson.module_title}</Badge>
@@ -216,7 +216,7 @@ export function LessonPage() {
         <LessonContent content={lesson.content} />
 
         {lesson.pdf_url && (
-          <div className="mt-6 rounded-xl border border-teal-100 bg-sea-light/50 p-4">
+          <div className="mt-6 rounded-xl border border-blue-100 bg-sea-light/50 p-4">
             <div className="font-semibold text-ink">PDF Lesson</div>
             <a
               href={lesson.pdf_url}
@@ -226,7 +226,7 @@ export function LessonPage() {
             >
               Open / Download PDF
             </a>
-            <iframe title="PDF preview" src={lesson.pdf_url} className="mt-3 h-72 w-full rounded-lg border border-teal-100" />
+            <iframe title="PDF preview" src={lesson.pdf_url} className="mt-3 h-72 w-full rounded-lg border border-blue-100" />
           </div>
         )}
 
@@ -248,7 +248,7 @@ export function LessonPage() {
           {lesson.exercise && (
             <Link
               to={`/app/exercises/${lesson.exercise.id}`}
-              className="rounded-xl border border-teal-200 bg-white px-5 py-3 text-sm font-semibold text-ink hover:bg-sea-light"
+              className="rounded-xl border border-blue-200 bg-white px-5 py-3 text-sm font-semibold text-ink hover:bg-sea-light"
             >
               Practice Exercise
             </Link>
@@ -263,8 +263,8 @@ export function LessonPage() {
       </section>
 
       {/* Right AI panel */}
-      <aside className="mt-5 flex h-[520px] flex-col rounded-2xl border border-teal-100 bg-white lg:mt-0 lg:h-auto lg:min-h-[70vh]">
-        <div className="flex items-center justify-between border-b border-teal-50 px-4 py-3">
+      <aside className="mt-5 flex h-[520px] flex-col rounded-2xl border border-blue-100 bg-white lg:mt-0 lg:h-auto lg:min-h-[70vh]">
+        <div className="flex items-center justify-between border-b border-blue-50 px-4 py-3">
           <div className="flex items-center gap-2 font-display font-semibold">
             <Bot className="h-5 w-5 text-sea" /> Macallinka AI
           </div>
@@ -299,13 +299,13 @@ export function LessonPage() {
           )}
           <div ref={chatEnd} />
         </div>
-        <form onSubmit={sendChat} className="border-t border-teal-50 p-3">
+        <form onSubmit={sendChat} className="border-t border-blue-50 p-3">
           <div className="flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Weydii AI..."
-              className="flex-1 rounded-xl border border-teal-100 bg-slate-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sea"
+              className="flex-1 rounded-xl border border-blue-100 bg-slate-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sea"
             />
             <button type="submit" className="rounded-xl bg-sea p-2.5 text-white hover:bg-sea-dark" disabled={!getToken()}>
               <Send className="h-4 w-4" />

@@ -45,7 +45,7 @@ export function CoursesPage() {
             {courses
               .filter((c) => c.category === cat)
               .map((c) => (
-                <article key={c.id} className="rounded-2xl border border-teal-100 bg-white p-5 shadow-sm">
+                <article key={c.id} className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-display text-lg font-semibold text-ink">{c.title}</h3>
                     <Badge tone="amber">{c.difficulty}</Badge>

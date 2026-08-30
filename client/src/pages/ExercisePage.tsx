@@ -129,7 +129,7 @@ export function ExercisePage() {
 
   if (finished && summary) {
     return (
-      <div className="mx-auto max-w-lg rounded-3xl border border-teal-100 bg-white p-8 text-center shadow-sm">
+      <div className="mx-auto max-w-lg rounded-3xl border border-blue-100 bg-white p-8 text-center shadow-sm">
         <div className="text-4xl">🎉</div>
         <h1 className="mt-3 font-display text-3xl font-bold text-ink">Exercise Completed</h1>
         <p className="mt-2 text-muted">{exercise.title}</p>
@@ -156,7 +156,7 @@ export function ExercisePage() {
               setFeedback(null);
               setSummary(null);
             }}
-            className="rounded-xl border border-teal-200 px-5 py-3 text-sm font-semibold"
+            className="rounded-xl border border-blue-200 px-5 py-3 text-sm font-semibold"
           >
             Review / Retry
           </button>
@@ -177,7 +177,7 @@ export function ExercisePage() {
         </p>
       </div>
 
-      <form onSubmit={submit} className="rounded-2xl border border-teal-100 bg-white p-6 shadow-sm">
+      <form onSubmit={submit} className="rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
         <h2 className="font-display text-xl font-semibold text-ink">{q.question}</h2>
         <p className="mt-1 text-xs text-muted">+{q.points} points</p>
 
@@ -188,7 +188,7 @@ export function ExercisePage() {
               type="button"
               onClick={() => setAnswer(opt)}
               className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
-                answer === opt ? 'border-sea bg-sea-light' : 'border-teal-100 hover:bg-slate-50'
+                answer === opt ? 'border-sea bg-sea-light' : 'border-blue-100 hover:bg-slate-50'
               }`}
             >
               <span
@@ -207,7 +207,7 @@ export function ExercisePage() {
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               placeholder="Qor jawaabtaada..."
-              className="w-full rounded-xl border border-teal-100 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-sea"
+              className="w-full rounded-xl border border-blue-100 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-sea"
             />
           )}
         </div>
@@ -226,7 +226,7 @@ export function ExercisePage() {
       {feedback && (
         <div
           className={`rounded-2xl border p-5 ${
-            feedback.correct ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'
+            feedback.correct ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'
           }`}
         >
           <div className="font-display text-lg font-semibold">{feedback.message}</div>
@@ -261,7 +261,7 @@ export function ExercisePage() {
                 <button
                   type="button"
                   onClick={() => setAiOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-sm font-semibold"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold"
                 >
                   <Bot className="h-4 w-4" /> Ask AI Tutor
                 </button>
@@ -275,14 +275,14 @@ export function ExercisePage() {
       )}
 
       {aiOpen && (
-        <div className="rounded-2xl border border-teal-100 bg-white p-5">
+        <div className="rounded-2xl border border-blue-100 bg-white p-5">
           <h3 className="font-display font-semibold">Macallinka AI — Hint</h3>
           <form onSubmit={askAi} className="mt-3 flex gap-2">
             <input
               value={aiQ}
               onChange={(e) => setAiQ(e.target.value)}
               placeholder='Tusaale: "I sii hint"'
-              className="flex-1 rounded-xl border border-teal-100 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sea"
+              className="flex-1 rounded-xl border border-blue-100 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sea"
             />
             <button type="submit" className="rounded-xl bg-sea px-4 py-2 text-sm font-semibold text-white">
               {aiLoading ? '...' : 'Weydii'}

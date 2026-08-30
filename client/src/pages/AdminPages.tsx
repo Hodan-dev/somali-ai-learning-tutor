@@ -36,7 +36,7 @@ export function AdminDashboard() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl border border-teal-100 bg-white p-5">
+          <div key={c.label} className="rounded-2xl border border-blue-100 bg-white p-5">
             <div className="text-xs text-muted">{c.label}</div>
             <div className="mt-1 font-display text-3xl font-bold text-sea">{c.value}</div>
           </div>
@@ -74,7 +74,7 @@ export function AdminDashboard() {
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-teal-100 bg-white p-5">
+    <section className="rounded-2xl border border-blue-100 bg-white p-5">
       <h2 className="font-display font-semibold">{title}</h2>
       <div className="mt-4 space-y-3">{children}</div>
     </section>
@@ -151,7 +151,7 @@ export function AdminCoursesPage() {
       {error && <ErrorBox message={error} />}
       {msg && <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">{msg}</div>}
 
-      <form onSubmit={createCourse} className="grid gap-3 rounded-2xl border border-teal-100 bg-white p-5 md:grid-cols-2">
+      <form onSubmit={createCourse} className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-5 md:grid-cols-2">
         <h2 className="font-display text-lg font-semibold md:col-span-2">Create Course</h2>
         <input
           className="input"
@@ -190,7 +190,7 @@ export function AdminCoursesPage() {
         </button>
       </form>
 
-      <form onSubmit={createModule} className="grid gap-3 rounded-2xl border border-teal-100 bg-white p-5 md:grid-cols-3">
+      <form onSubmit={createModule} className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-5 md:grid-cols-3">
         <h2 className="font-display text-lg font-semibold md:col-span-3">Add Module</h2>
         <select
           className="input"
@@ -219,7 +219,7 @@ export function AdminCoursesPage() {
 
       <div className="grid gap-3">
         {courses.map((c) => (
-          <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-100 bg-white p-4">
+          <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-white p-4">
             <div>
               <div className="font-semibold">{c.title}</div>
               <div className="text-sm text-muted">
@@ -233,7 +233,7 @@ export function AdminCoursesPage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-teal-100 bg-white p-4">
+      <div className="rounded-2xl border border-blue-100 bg-white p-4">
         <h3 className="font-semibold">Modules</h3>
         <ul className="mt-3 space-y-2 text-sm">
           {modules.map((m) => (
@@ -325,9 +325,9 @@ export function AdminLessonsPage() {
       {error && <ErrorBox message={error} />}
       {msg && <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">{msg}</div>}
 
-      <form onSubmit={uploadPdf} className="space-y-3 rounded-2xl border border-teal-100 bg-white p-5">
+      <form onSubmit={uploadPdf} className="space-y-3 rounded-2xl border border-blue-100 bg-white p-5">
         <h2 className="font-display text-lg font-semibold">Upload Lesson PDF</h2>
-        <select className="w-full rounded-xl border border-teal-100 px-3 py-2" value={moduleId} onChange={(e) => setModuleId(e.target.value)} required>
+        <select className="w-full rounded-xl border border-blue-100 px-3 py-2" value={moduleId} onChange={(e) => setModuleId(e.target.value)} required>
           <option value="">Select module</option>
           {modules.map((m) => (
             <option key={m.id} value={m.id}>
@@ -335,17 +335,17 @@ export function AdminLessonsPage() {
             </option>
           ))}
         </select>
-        <input className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Lesson title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <input className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Lesson title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
         <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
         <button type="submit" className="rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white">
           Upload & Process PDF
         </button>
       </form>
 
-      <form onSubmit={addTextLesson} className="space-y-3 rounded-2xl border border-teal-100 bg-white p-5">
+      <form onSubmit={addTextLesson} className="space-y-3 rounded-2xl border border-blue-100 bg-white p-5">
         <h2 className="font-display text-lg font-semibold">Add Text Lesson</h2>
-        <select className="w-full rounded-xl border border-teal-100 px-3 py-2" value={moduleId} onChange={(e) => setModuleId(e.target.value)} required>
+        <select className="w-full rounded-xl border border-blue-100 px-3 py-2" value={moduleId} onChange={(e) => setModuleId(e.target.value)} required>
           <option value="">Select module</option>
           {modules.map((m) => (
             <option key={m.id} value={m.id}>
@@ -353,8 +353,8 @@ export function AdminLessonsPage() {
             </option>
           ))}
         </select>
-        <input className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <textarea className="w-full rounded-xl border border-teal-100 px-3 py-2" rows={6} placeholder="Markdown content..." value={content} onChange={(e) => setContent(e.target.value)} required />
+        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <textarea className="w-full rounded-xl border border-blue-100 px-3 py-2" rows={6} placeholder="Markdown content..." value={content} onChange={(e) => setContent(e.target.value)} required />
         <button type="submit" className="rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white">
           Create Lesson
         </button>
@@ -362,7 +362,7 @@ export function AdminLessonsPage() {
 
       <div className="space-y-2">
         {lessons.map((l) => (
-          <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-100 bg-white p-4">
+          <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-100 bg-white p-4">
             <div>
               <div className="font-medium">{l.title}</div>
               <div className="text-xs text-muted">
@@ -437,9 +437,9 @@ export function AdminExercisesPage() {
     <div className="space-y-6">
       <h1 className="font-display text-3xl font-bold">Layliyada</h1>
       {msg && <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">{msg}</div>}
-      <form onSubmit={create} className="space-y-3 rounded-2xl border border-teal-100 bg-white p-5">
+      <form onSubmit={create} className="space-y-3 rounded-2xl border border-blue-100 bg-white p-5">
         <h2 className="font-display text-lg font-semibold">Create Exercise</h2>
-        <select className="w-full rounded-xl border border-teal-100 px-3 py-2" value={lessonId} onChange={(e) => setLessonId(e.target.value)} required>
+        <select className="w-full rounded-xl border border-blue-100 px-3 py-2" value={lessonId} onChange={(e) => setLessonId(e.target.value)} required>
           <option value="">Select lesson</option>
           {lessons.map((l) => (
             <option key={l.id} value={l.id}>
@@ -447,19 +447,19 @@ export function AdminExercisesPage() {
             </option>
           ))}
         </select>
-        <input className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Exercise title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <textarea className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Question" value={question} onChange={(e) => setQuestion(e.target.value)} required />
-        <input className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Options (comma-separated, optional)" value={options} onChange={(e) => setOptions(e.target.value)} />
-        <input className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Correct answer" value={correct} onChange={(e) => setCorrect(e.target.value)} required />
-        <input className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Hint" value={hint} onChange={(e) => setHint(e.target.value)} />
-        <input className="w-full rounded-xl border border-teal-100 px-3 py-2" placeholder="Explanation" value={explanation} onChange={(e) => setExplanation(e.target.value)} />
+        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Exercise title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <textarea className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Question" value={question} onChange={(e) => setQuestion(e.target.value)} required />
+        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Options (comma-separated, optional)" value={options} onChange={(e) => setOptions(e.target.value)} />
+        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Correct answer" value={correct} onChange={(e) => setCorrect(e.target.value)} required />
+        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Hint" value={hint} onChange={(e) => setHint(e.target.value)} />
+        <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Explanation" value={explanation} onChange={(e) => setExplanation(e.target.value)} />
         <button type="submit" className="rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white">
           Create
         </button>
       </form>
       <div className="space-y-2">
         {exercises.map((ex) => (
-          <div key={ex.id} className="rounded-xl border border-teal-100 bg-white p-4">
+          <div key={ex.id} className="rounded-xl border border-blue-100 bg-white p-4">
             <div className="font-medium">{ex.title}</div>
             <div className="text-xs text-muted">
               {ex.course_title} · {ex.lesson_title} · {ex.question_count} questions
@@ -483,7 +483,7 @@ export function AdminStudentsPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-3xl font-bold">Ardayda</h1>
-      <div className="overflow-hidden rounded-2xl border border-teal-100 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="bg-sea-light text-sea-dark">
             <tr>
@@ -495,7 +495,7 @@ export function AdminStudentsPage() {
           </thead>
           <tbody>
             {students.map((s) => (
-              <tr key={s.id} className="border-t border-teal-50">
+              <tr key={s.id} className="border-t border-blue-50">
                 <td className="px-4 py-3 font-medium">{s.name}</td>
                 <td className="px-4 py-3 text-muted">{s.email}</td>
                 <td className="px-4 py-3">{s.overallProgress}%</td>
@@ -536,7 +536,7 @@ export function AdminStudentDetailPage() {
       <Link to="/admin/students" className="text-sm text-sea hover:underline">
         ← Back
       </Link>
-      <div className="rounded-2xl border border-teal-100 bg-white p-6">
+      <div className="rounded-2xl border border-blue-100 bg-white p-6">
         <h1 className="font-display text-3xl font-bold">Student: {data.student.name}</h1>
         <p className="text-muted">{data.student.email}</p>
         <div className="mt-4 max-w-md">
@@ -556,7 +556,7 @@ export function AdminStudentDetailPage() {
       </div>
       <div className="space-y-3">
         {data.courses.map((c, i) => (
-          <div key={i} className="rounded-xl border border-teal-100 bg-white p-4">
+          <div key={i} className="rounded-xl border border-blue-100 bg-white p-4">
             <div className="flex justify-between text-sm">
               <span className="font-semibold">
                 {c.title} · {c.category}

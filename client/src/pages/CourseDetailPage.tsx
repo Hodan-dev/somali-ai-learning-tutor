@@ -47,7 +47,7 @@ export function CourseDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-teal-100 bg-white p-6">
+      <div className="rounded-3xl border border-blue-100 bg-white p-6">
         <Badge>{course.category}</Badge>
         <h1 className="mt-2 font-display text-3xl font-bold text-ink">{course.title}</h1>
         <p className="mt-2 max-w-3xl text-muted">{course.description}</p>
@@ -72,7 +72,7 @@ export function CourseDetailPage() {
 
       <div className="space-y-4">
         {course.modules.map((mod) => (
-          <section key={mod.id} className="rounded-2xl border border-teal-100 bg-white p-5">
+          <section key={mod.id} className="rounded-2xl border border-blue-100 bg-white p-5">
             <h2 className="font-display text-lg font-semibold text-ink">{mod.title}</h2>
             <ul className="mt-4 space-y-2">
               {mod.lessons.map((les) => {

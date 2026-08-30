@@ -34,7 +34,7 @@ export function ProgressPage() {
         <p className="mt-1 text-muted">La soco casharrada, layliyada, iyo koorsooyinka.</p>
       </div>
 
-      <section className="rounded-3xl border border-teal-100 bg-white p-6">
+      <section className="rounded-3xl border border-blue-100 bg-white p-6">
         <h2 className="font-display text-lg font-semibold">Overall Progress</h2>
         <div className="mt-3 flex items-end gap-4">
           <div className="font-display text-5xl font-bold text-sea">{data.overall}%</div>
@@ -55,7 +55,7 @@ export function ProgressPage() {
           <Link
             key={c.id}
             to={`/app/courses/${c.id}`}
-            className="block rounded-2xl border border-teal-100 bg-white p-4 hover:border-teal-200"
+            className="block rounded-2xl border border-blue-100 bg-white p-4 hover:border-blue-200"
           >
             <div className="flex justify-between text-sm">
               <span className="font-semibold text-ink">
@@ -71,7 +71,7 @@ export function ProgressPage() {
       </section>
 
       {data.completedCourses.length > 0 && (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
           <h2 className="font-display text-lg font-semibold">Completed Courses 🎉</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {data.completedCourses.map((c, i) => (
@@ -126,7 +126,7 @@ export function ProfilePage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <h1 className="font-display text-3xl font-bold text-ink">Profile</h1>
-      <div className="rounded-2xl border border-teal-100 bg-white p-6">
+      <div className="rounded-2xl border border-blue-100 bg-white p-6">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sea font-display text-2xl font-bold text-white">
           {data.user.name.charAt(0)}
         </div>
@@ -147,7 +147,7 @@ export function ProfilePage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-b border-teal-50 py-2">
+    <div className="flex justify-between border-b border-blue-50 py-2">
       <dt className="text-muted">{label}</dt>
       <dd className="font-medium text-ink">{value}</dd>
     </div>
@@ -191,8 +191,8 @@ export function TutorPage() {
   }
 
   return (
-    <div className="mx-auto flex h-[70vh] max-w-2xl flex-col rounded-3xl border border-teal-100 bg-white">
-      <div className="border-b border-teal-50 px-5 py-4">
+    <div className="mx-auto flex h-[70vh] max-w-2xl flex-col rounded-3xl border border-blue-100 bg-white">
+      <div className="border-b border-blue-50 px-5 py-4">
         <h1 className="font-display text-xl font-bold">🤖 Somali AI Tutor</h1>
         <p className="text-sm text-muted">Weydii AI — hint, sharaxaad, iyo tusaalooyin.</p>
       </div>
@@ -212,12 +212,12 @@ export function TutorPage() {
         ))}
         {typing && <div className="text-muted">AI qoraya...</div>}
       </div>
-      <form onSubmit={send} className="flex gap-2 border-t border-teal-50 p-4">
+      <form onSubmit={send} className="flex gap-2 border-t border-blue-50 p-4">
         <input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Su'aashaada..."
-          className="flex-1 rounded-xl border border-teal-100 px-3 py-2.5 outline-none focus:ring-2 focus:ring-sea"
+          className="flex-1 rounded-xl border border-blue-100 px-3 py-2.5 outline-none focus:ring-2 focus:ring-sea"
         />
         <button type="submit" className="rounded-xl bg-sea px-5 py-2.5 text-sm font-semibold text-white">
           Send

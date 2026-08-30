@@ -3,16 +3,16 @@
 @theme {
   --font-sans: "Lexend", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --color-ink: #12263a;
-  --color-muted: #5b6b7c;
-  --color-sea: #0b7a75;
-  --color-sea-dark: #085f5b;
-  --color-sea-light: #e6f5f4;
-  --color-sand: #fff8ef;
-  --color-amber: #e89b0c;
-  --color-sky: #e8f4fb;
-  --color-success: #1f8a4c;
-  --color-danger: #c23b3b;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-sea: #2563eb;
+  --color-sea-dark: #1e3a8a;
+  --color-sea-light: #dbeafe;
+  --color-sand: #f8fafc;
+  --color-amber: #3b82f6;
+  --color-sky: #eff6ff;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
 }
 
 * {
@@ -30,9 +30,9 @@ body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   background:
-    radial-gradient(1200px 600px at 10% -10%, #d9f3f1 0%, transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, #ffe8c2 0%, transparent 45%),
-    linear-gradient(180deg, #f4fbfa 0%, #f7fafc 40%, #eef6f5 100%);
+    radial-gradient(1100px 520px at 0% -5%, #dbeafe 0%, transparent 50%),
+    radial-gradient(900px 480px at 100% 0%, #e0f2fe 0%, transparent 45%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 45%, #f1f5f9 100%);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -59,7 +59,7 @@ body {
 .prose-lesson p {
   margin: 0.7rem 0;
   line-height: 1.7;
-  color: #243447;
+  color: #334155;
 }
 
 .prose-lesson ul,
@@ -71,8 +71,8 @@ body {
 .prose-lesson blockquote {
   margin: 1rem 0;
   padding: 0.85rem 1rem;
-  border-left: 4px solid var(--color-amber);
-  background: #fff7e8;
+  border-left: 4px solid #3b82f6;
+  background: #eff6ff;
   border-radius: 0 0.6rem 0.6rem 0;
 }
 
@@ -85,7 +85,7 @@ body {
 
 .prose-lesson th,
 .prose-lesson td {
-  border: 1px solid #d5e3e2;
+  border: 1px solid #dbeafe;
   padding: 0.55rem 0.7rem;
   text-align: left;
 }
@@ -96,15 +96,15 @@ body {
 
 .prose-lesson code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: #eef6f5;
+  background: #eff6ff;
   padding: 0.1rem 0.35rem;
   border-radius: 0.3rem;
   font-size: 0.9em;
 }
 
 .prose-lesson pre {
-  background: #12263a;
-  color: #e8f4fb;
+  background: #1e3a8a;
+  color: #eff6ff;
   padding: 1rem;
   border-radius: 0.75rem;
   overflow-x: auto;
@@ -120,13 +120,13 @@ body {
 .progress-bar {
   height: 0.55rem;
   border-radius: 999px;
-  background: #d9e8e7;
+  background: #dbeafe;
   overflow: hidden;
 }
 
 .progress-bar > span {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #0b7a75, #17a39c);
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
   border-radius: 999px;
 }

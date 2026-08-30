@@ -1,6 +1,7 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BookOpen, Bot, Home, LayoutDashboard, LogOut, UserRound, ChartColumnIncreasing, GraduationCap } from 'lucide-react';
 import { useAuth } from '../auth';
+import { BrandLogo } from './BrandLogo';
 
 const studentLinks = [
   { to: '/app', label: 'Dashboard', icon: Home, end: true },
@@ -25,15 +26,12 @@ export function AppShell({ variant }: { variant: 'student' | 'admin' }) {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-teal-100/80 bg-white/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-blue-100 bg-white/95 shadow-sm backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link to={variant === 'admin' ? '/admin' : '/app'} className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sea text-white font-display font-bold">S</span>
-            <div className="leading-tight">
-              <div className="font-display text-sm font-bold text-ink sm:text-base">Somali AI Tutor</div>
-              <div className="text-[11px] text-muted">{variant === 'admin' ? 'Admin' : 'Arday'}</div>
-            </div>
-          </Link>
+          <BrandLogo
+            to={variant === 'admin' ? '/admin' : '/app'}
+            subtitle={variant === 'admin' ? 'Admin Dashboard' : 'Arday · Student'}
+          />
           <nav className="hidden items-center gap-1 md:flex">
             {links.map((l) => (
               <NavLink
@@ -58,14 +56,14 @@ export function AppShell({ variant }: { variant: 'student' | 'admin' }) {
                 await logout();
                 navigate('/');
               }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-teal-100 bg-white px-3 py-2 text-sm font-medium text-ink hover:bg-sea-light"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm font-medium text-ink hover:bg-blue-50"
             >
               <LogOut className="h-4 w-4" />
               Logout
             </button>
           </div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto border-t border-teal-50 px-3 py-2 md:hidden">
+        <nav className="flex gap-1 overflow-x-auto border-t border-blue-50 px-3 py-2 md:hidden">
           {links.map((l) => (
             <NavLink
               key={l.to}

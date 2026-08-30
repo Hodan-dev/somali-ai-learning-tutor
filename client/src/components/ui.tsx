@@ -10,7 +10,7 @@ export function ProgressBar({ value }: { value: number }) {
 export function Badge({ children, tone = 'sea' }: { children: React.ReactNode; tone?: 'sea' | 'amber' | 'ink' }) {
   const tones = {
     sea: 'bg-sea-light text-sea-dark',
-    amber: 'bg-amber-100 text-amber-800',
+    amber: 'bg-amber-100 text-blue-800',
     ink: 'bg-slate-100 text-slate-700',
   };
   return (
@@ -22,7 +22,7 @@ export function Badge({ children, tone = 'sea' }: { children: React.ReactNode; t
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-teal-200 bg-white/70 p-8 text-center">
+    <div className="rounded-2xl border border-dashed border-blue-200 bg-white/70 p-8 text-center">
       <h3 className="font-display text-lg font-semibold text-ink">{title}</h3>
       <p className="mt-2 text-sm text-muted">{body}</p>
     </div>
