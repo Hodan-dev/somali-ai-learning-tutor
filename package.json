@@ -8,9 +8,11 @@
     "dev:client": "npm run dev --prefix client",
     "build": "npm run build --prefix client",
     "start": "npm run start --prefix server",
-    "start:fast": "npm run build --prefix client && npm run start --prefix server"
+    "start:fast": "npm run build --prefix client && npm run start --prefix server",
+    "pptx": "node docs/presentation/generate.mjs"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "pptxgenjs": "^3.12.0"
   }
 }
