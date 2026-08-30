@@ -819,6 +819,10 @@ const SHORT_MODULE_TITLES: Record<string, string> = {
   'Module 3 — Basic Statistics': 'Module 3',
 };
 
+function pdfLessonPlaceholder(title: string, description?: string) {
+  return description?.trim() || `Read the PDF lesson: ${title}`;
+}
+
 /** Keep course copy short in existing databases after UI refresh. */
 export function syncContentCopy() {
   initDb();
@@ -829,5 +833,16 @@ export function syncContentCopy() {
   const updateModule = db.prepare('UPDATE modules SET title = ? WHERE title = ?');
   for (const [oldTitle, newTitle] of Object.entries(SHORT_MODULE_TITLES)) {
     updateModule.run(newTitle, oldTitle);
+  }
+
+  // PDF lessons: keep only the file viewer — drop any old extracted text/chunks.
+  const pdfLessons = db
+    .prepare(`SELECT id, title, description FROM lessons WHERE pdf_url IS NOT NULL AND pdf_url != ''`)
+    .all() as Array<{ id: string; title: string; description: string }>;
+  const updateLesson = db.prepare(`UPDATE lessons SET content = ? WHERE id = ?`);
+  const deleteChunks = db.prepare(`DELETE FROM lesson_chunks WHERE lesson_id = ?`);
+  for (const lesson of pdfLessons) {
+    updateLesson.run(pdfLessonPlaceholder(lesson.title, lesson.description), lesson.id);
+    deleteChunks.run(lesson.id);
   }
 }

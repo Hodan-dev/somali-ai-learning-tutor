@@ -8,7 +8,10 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
 import { chunkText } from '../services/ai.js';
-import { placeholderPdfContent, queuePdfProcessing } from '../services/pdfProcessing.js';
+
+function pdfLessonPlaceholder(title: string, description?: string) {
+  return description?.trim() || `Read the PDF lesson: ${title}`;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadDir = path.join(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads');
@@ -81,24 +84,35 @@ lessonsRouter.get('/:id', authRequired, (req, res) => {
     .prepare(`SELECT id, title, sort_order FROM modules WHERE course_id = ? ORDER BY sort_order`)
     .all(lesson.course_id) as Array<{ id: string; title: string; sort_order: number }>;
 
-  const curriculum = modules.map((m) => {
-    const lessons = db
+  const moduleLessons = modules.map((m) => ({
+    module: m,
+    lessons: db
       .prepare(`SELECT id, title, sort_order FROM lessons WHERE module_id = ? AND status = 'published' ORDER BY sort_order`)
-      .all(m.id) as Array<{ id: string; title: string; sort_order: number }>;
-    return {
-      ...m,
-      lessons: lessons.map((l) => {
-        let completed = false;
-        if (req.user!.role === 'STUDENT') {
-          const p = db
-            .prepare(`SELECT completed FROM lesson_progress WHERE student_id = ? AND lesson_id = ?`)
-            .get(req.user!.id, l.id) as { completed: number } | undefined;
-          completed = !!p?.completed;
-        }
-        return { ...l, completed, current: l.id === req.params.id };
-      }),
-    };
-  });
+      .all(m.id) as Array<{ id: string; title: string; sort_order: number }>,
+  }));
+
+  const progressByLesson = new Map<string, boolean>();
+  if (req.user!.role === 'STUDENT') {
+    const lessonIds = moduleLessons.flatMap(({ lessons }) => lessons.map((l) => l.id));
+    if (lessonIds.length) {
+      const placeholders = lessonIds.map(() => '?').join(',');
+      const rows = db
+        .prepare(
+          `SELECT lesson_id, completed FROM lesson_progress WHERE student_id = ? AND lesson_id IN (${placeholders})`
+        )
+        .all(req.user!.id, ...lessonIds) as Array<{ lesson_id: string; completed: number }>;
+      for (const row of rows) progressByLesson.set(row.lesson_id, !!row.completed);
+    }
+  }
+
+  const curriculum = moduleLessons.map(({ module: m, lessons }) => ({
+    ...m,
+    lessons: lessons.map((l) => ({
+      ...l,
+      completed: progressByLesson.get(l.id) ?? false,
+      current: l.id === req.params.id,
+    })),
+  }));
 
   let completed = false;
   if (req.user!.role === 'STUDENT') {
@@ -106,6 +120,11 @@ lessonsRouter.get('/:id', authRequired, (req, res) => {
       .prepare(`SELECT completed FROM lesson_progress WHERE student_id = ? AND lesson_id = ?`)
       .get(req.user!.id, req.params.id) as { completed: number } | undefined;
     completed = !!p?.completed;
+  }
+
+  // PDF lessons: serve the file in the viewer — do not ship extracted text to the client.
+  if (lesson.pdf_url) {
+    lesson.content = pdfLessonPlaceholder(String(lesson.title), String(lesson.description || ''));
   }
 
   res.json({ lesson: { ...lesson, completed, exercise }, curriculum });
@@ -226,7 +245,7 @@ lessonsRouter.post(
         return res.status(400).json({ error: 'PDF, title, iyo module ayaa loo baahan yahay.' });
       }
 
-      const content = placeholderPdfContent(parsed.data.title);
+      const content = pdfLessonPlaceholder(parsed.data.title, parsed.data.description);
 
       const max = db
         .prepare(`SELECT COALESCE(MAX(sort_order), -1) as m FROM lessons WHERE module_id = ?`)
@@ -248,14 +267,11 @@ lessonsRouter.post(
         req.user!.id
       );
 
-      queuePdfProcessing(id, req.file.path, parsed.data.title);
-
       res.status(201).json({
         lesson: {
           id,
           title: parsed.data.title,
           pdfUrl,
-          processing: true,
         },
       });
     } catch (e) {

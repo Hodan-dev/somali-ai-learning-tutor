@@ -214,14 +214,13 @@ export function LessonPage() {
           <Badge tone="ink">{lesson.module_title}</Badge>
         </div>
         <h1 className="font-display text-3xl font-bold text-ink">{lesson.title}</h1>
-        <LessonContent content={lesson.content} />
 
-        {lesson.pdf_url && (
-          <div className="mt-6 rounded-xl border border-blue-100 bg-sea-light/30 p-3 sm:p-4">
-            <div className="font-semibold text-ink">PDF Lesson</div>
-            <p className="mt-1 text-sm text-muted">Scroll inside the viewer — it fits your screen size.</p>
+        {lesson.pdf_url ? (
+          <div className="mt-4">
             <PdfViewer url={lesson.pdf_url} title={lesson.title} />
           </div>
+        ) : (
+          <LessonContent content={lesson.content} />
         )}
 
         {doneMsg && (

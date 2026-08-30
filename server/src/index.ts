@@ -30,8 +30,10 @@ app.use(express.json({ limit: '2mb' }));
 app.use(
   '/uploads',
   express.static(path.join(__dirname, '..', 'uploads'), {
-    maxAge: '7d',
+    maxAge: '30d',
+    immutable: true,
     etag: true,
+    lastModified: true,
   })
 );
 

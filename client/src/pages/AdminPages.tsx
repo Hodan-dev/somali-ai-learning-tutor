@@ -372,7 +372,6 @@ export function AdminCoursesPage() {
         >
           {saving ? 'Creating course...' : 'Create course with modules & PDFs'}
         </button>
-        <p className="text-xs text-muted">PDF text for AI tutor processes in the background after upload.</p>
       </form>
 
       <section className="space-y-3">

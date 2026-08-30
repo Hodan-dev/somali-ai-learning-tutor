@@ -51,23 +51,29 @@ aiRouter.post('/chat', authRequired, requireRole('STUDENT'), async (req, res) =>
     if (parsed.data.lessonId) {
       const lesson = db
         .prepare(
-          `SELECT l.title, l.content, c.title as course_title
+          `SELECT l.title, l.content, l.description, l.pdf_url, c.title as course_title
            FROM lessons l JOIN modules m ON m.id = l.module_id JOIN courses c ON c.id = m.course_id
            WHERE l.id = ?`
         )
-        .get(parsed.data.lessonId) as { title: string; content: string; course_title: string } | undefined;
+        .get(parsed.data.lessonId) as
+        | { title: string; content: string; description: string; pdf_url: string | null; course_title: string }
+        | undefined;
 
       if (lesson) {
         lessonTitle = lesson.title;
         courseTitle = lesson.course_title;
-        lessonContent = lesson.content;
+        lessonContent = lesson.pdf_url
+          ? lesson.description || lesson.title
+          : lesson.content;
       }
 
-      const chunks = db
-        .prepare(`SELECT id, content FROM lesson_chunks WHERE lesson_id = ? ORDER BY chunk_index`)
-        .all(parsed.data.lessonId) as { id: string; content: string }[];
+      if (!lesson?.pdf_url) {
+        const chunks = db
+          .prepare(`SELECT id, content FROM lesson_chunks WHERE lesson_id = ? ORDER BY chunk_index`)
+          .all(parsed.data.lessonId) as { id: string; content: string }[];
 
-      contextChunks = retrieveRelevantChunks(chunks, parsed.data.message);
+        contextChunks = retrieveRelevantChunks(chunks, parsed.data.message);
+      }
     }
 
     const reply = await generateTutorReply({
