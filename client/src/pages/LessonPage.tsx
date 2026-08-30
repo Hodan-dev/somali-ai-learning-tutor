@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Bot, Check, Menu, Send, Trash2, X } from 'lucide-react';
 import { api, getToken } from '../lib/api';
 import { Badge, ErrorBox, LessonContent, Loading } from '../components/ui';
-import { PdfViewer } from '../components/PdfViewer';
+const PdfViewer = lazy(() => import('../components/PdfViewer').then((m) => ({ default: m.PdfViewer })));
 
 interface LessonData {
   lesson: {
@@ -217,7 +217,15 @@ export function LessonPage() {
 
         {lesson.pdf_url ? (
           <div className="mt-4">
-            <PdfViewer url={lesson.pdf_url} title={lesson.title} />
+            <Suspense
+              fallback={
+                <div className="flex min-h-[280px] items-center justify-center rounded-xl border border-blue-100 bg-white text-sm text-muted">
+                  Loading viewer…
+                </div>
+              }
+            >
+              <PdfViewer url={lesson.pdf_url} title={lesson.title} />
+            </Suspense>
           </div>
         ) : (
           <LessonContent content={lesson.content} />
