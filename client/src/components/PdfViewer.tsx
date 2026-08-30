@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, FileText, Loader2 } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 type Props = {
   url: string;
@@ -27,6 +25,8 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
+  const [useIframe, setUseIframe] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   useEffect(() => {
     setPage(1);
@@ -34,6 +34,8 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
     setLoading(true);
     setProgress(0);
     setError('');
+    setUseIframe(false);
+    setIframeLoaded(false);
   }, [url]);
 
   useEffect(() => {
@@ -52,14 +54,17 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
     setError('');
   }, []);
 
-  const onLoadError = useCallback(() => {
+  const onLoadError = useCallback((err: Error) => {
+    console.error('PDF.js load failed:', err);
     setLoading(false);
-    setError('PDF could not be loaded in the viewer.');
+    setUseIframe(true);
   }, []);
 
   const onLoadProgress = useCallback(({ loaded, total }: { loaded: number; total: number }) => {
     if (total > 0) setProgress(Math.min(99, Math.round((loaded / total) * 100)));
   }, []);
+
+  const viewerSrc = `${url.split('#')[0]}#view=FitH&toolbar=1`;
 
   return (
     <div className="mt-3 overflow-hidden rounded-xl border border-blue-100 bg-slate-50">
@@ -75,7 +80,7 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
         </div>
       </div>
 
-      {numPages > 0 && (
+      {numPages > 0 && !useIframe && (
         <div className="flex flex-wrap items-center justify-center gap-2 border-b border-blue-50 bg-white px-3 py-2 text-sm">
           <button
             type="button"
@@ -117,22 +122,25 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
         ref={containerRef}
         className="relative flex min-h-[280px] justify-center overflow-auto bg-slate-200/60 p-3 sm:min-h-[min(72dvh,42rem)]"
       >
-        {loading && !error && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white text-sm text-muted">
-            <Loader2 className="h-8 w-8 animate-spin text-sea" />
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-sea" />
-              <span>{progress > 0 ? `Loading PDF… ${progress}%` : 'Loading PDF…'}</span>
-            </div>
-            {progress > 0 && (
-              <div className="h-1.5 w-48 overflow-hidden rounded-full bg-blue-100">
-                <div className="h-full rounded-full bg-sea transition-all" style={{ width: `${progress}%` }} />
+        {useIframe ? (
+          <>
+            {!iframeLoaded && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white text-sm text-muted">
+                <Loader2 className="h-8 w-8 animate-spin text-sea" />
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-sea" />
+                  <span>Loading PDF…</span>
+                </div>
               </div>
             )}
-          </div>
-        )}
-
-        {error ? (
+            <iframe
+              title={title}
+              src={viewerSrc}
+              onLoad={() => setIframeLoaded(true)}
+              className="block h-[min(72dvh,42rem)] w-full min-h-[280px] bg-white sm:h-[min(75dvh,48rem)]"
+            />
+          </>
+        ) : error ? (
           <div className="flex flex-col items-center justify-center gap-3 py-12 text-center text-sm">
             <p className="text-muted">{error}</p>
             <a href={url} target="_blank" rel="noreferrer" className="font-medium text-sea hover:underline">
@@ -141,33 +149,51 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
           </div>
         ) : (
           width > 0 && (
-            <Document
-              file={url}
-              options={pdfOptions}
-              onLoadSuccess={onLoadSuccess}
-              onLoadError={onLoadError}
-              onLoadProgress={onLoadProgress}
-              loading=""
-              className="shadow-md"
-            >
-              <Page
-                pageNumber={page}
-                width={Math.max(width - 24, 280)}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-                aria-label={`${title}, page ${page}`}
-                loading={
-                  <div className="flex h-64 items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-sea" />
+            <>
+              {loading && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white text-sm text-muted">
+                  <Loader2 className="h-8 w-8 animate-spin text-sea" />
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-sea" />
+                    <span>{progress > 0 ? `Loading PDF… ${progress}%` : 'Loading PDF…'}</span>
                   </div>
-                }
-              />
-            </Document>
+                  {progress > 0 && (
+                    <div className="h-1.5 w-48 overflow-hidden rounded-full bg-blue-100">
+                      <div className="h-full rounded-full bg-sea transition-all" style={{ width: `${progress}%` }} />
+                    </div>
+                  )}
+                </div>
+              )}
+              <Document
+                file={url}
+                options={pdfOptions}
+                onLoadSuccess={onLoadSuccess}
+                onLoadError={onLoadError}
+                onLoadProgress={onLoadProgress}
+                loading=""
+                className="shadow-md"
+              >
+                <Page
+                  pageNumber={page}
+                  width={Math.max(width - 24, 280)}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                  aria-label={`${title}, page ${page}`}
+                  loading={
+                    <div className="flex h-64 items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-sea" />
+                    </div>
+                  }
+                />
+              </Document>
+            </>
           )
         )}
       </div>
       <p className="border-t border-blue-50 px-3 py-2 text-center text-xs text-muted">
-        Large PDFs load page by page — use arrows to read. Scroll inside the viewer on mobile.
+        {useIframe
+          ? 'Using browser PDF viewer — large files may take a moment to appear.'
+          : 'Large PDFs load page by page — use arrows to read.'}
       </p>
     </div>
   );

@@ -1,9 +1,22 @@
 import { defineConfig } from 'vite'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const pdfjsDist = path.resolve(__dirname, 'node_modules/react-pdf/node_modules/pdfjs-dist')
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      'pdfjs-dist': pdfjsDist,
+    },
+  },
+  optimizeDeps: {
+    include: ['react-pdf', 'pdfjs-dist'],
+  },
   plugins: [
     react(),
     tailwindcss(),
