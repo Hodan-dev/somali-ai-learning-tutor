@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, getToken } from '../lib/api';
 import { Badge, ErrorBox, Loading, ProgressBar, CourseProgressRow } from '../components/ui';
+import { SearchableSelect } from '../components/SearchableSelect';
 
 export function AdminDashboard() {
   const [data, setData] = useState<{
@@ -160,15 +161,17 @@ export function AdminCoursesPage() {
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           required
         />
-        <select
+        <SearchableSelect
           className="input"
           value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
-        >
-          {['Physics', 'Biology', 'English', 'Chemistry', 'Mathematics'].map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
+          onChange={(category) => setForm({ ...form, category })}
+          options={['Physics', 'Biology', 'English', 'Chemistry', 'Mathematics'].map((c) => ({
+            value: c,
+            label: c,
+          }))}
+          placeholder="Category"
+          searchPlaceholder="Search category..."
+        />
         <textarea
           className="input md:col-span-2"
           placeholder="Description"
@@ -176,15 +179,14 @@ export function AdminCoursesPage() {
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           required
         />
-        <select
+        <SearchableSelect
           className="input"
           value={form.difficulty}
-          onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
-        >
-          {['Beginner', 'Intermediate', 'Advanced'].map((d) => (
-            <option key={d}>{d}</option>
-          ))}
-        </select>
+          onChange={(difficulty) => setForm({ ...form, difficulty })}
+          options={['Beginner', 'Intermediate', 'Advanced'].map((d) => ({ value: d, label: d }))}
+          placeholder="Difficulty"
+          searchPlaceholder="Search difficulty..."
+        />
         <button type="submit" className="rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white">
           Create
         </button>
@@ -192,19 +194,18 @@ export function AdminCoursesPage() {
 
       <form onSubmit={createModule} className="grid gap-3 rounded-2xl border border-blue-100 bg-white p-5 md:grid-cols-3">
         <h2 className="font-display text-lg font-semibold md:col-span-3">Add Module</h2>
-        <select
+        <SearchableSelect
           className="input"
           value={moduleForm.courseId}
-          onChange={(e) => setModuleForm({ ...moduleForm, courseId: e.target.value })}
+          onChange={(courseId) => setModuleForm({ ...moduleForm, courseId })}
+          options={[
+            { value: '', label: 'Select course' },
+            ...courses.map((c) => ({ value: c.id, label: c.title })),
+          ]}
+          placeholder="Select course"
+          searchPlaceholder="Search courses..."
           required
-        >
-          <option value="">Select course</option>
-          {courses.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
+        />
         <input
           className="input"
           placeholder="Module title"
@@ -327,14 +328,18 @@ export function AdminLessonsPage() {
 
       <form onSubmit={uploadPdf} className="space-y-3 rounded-2xl border border-blue-100 bg-white p-5">
         <h2 className="font-display text-lg font-semibold">Upload Lesson PDF</h2>
-        <select className="w-full rounded-xl border border-blue-100 px-3 py-2" value={moduleId} onChange={(e) => setModuleId(e.target.value)} required>
-          <option value="">Select module</option>
-          {modules.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.course_title} — {m.title}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          className="w-full"
+          value={moduleId}
+          onChange={setModuleId}
+          options={[
+            { value: '', label: 'Select module' },
+            ...modules.map((m) => ({ value: m.id, label: `${m.course_title} — ${m.title}` })),
+          ]}
+          placeholder="Select module"
+          searchPlaceholder="Search modules..."
+          required
+        />
         <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Lesson title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
         <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
@@ -345,14 +350,18 @@ export function AdminLessonsPage() {
 
       <form onSubmit={addTextLesson} className="space-y-3 rounded-2xl border border-blue-100 bg-white p-5">
         <h2 className="font-display text-lg font-semibold">Add Text Lesson</h2>
-        <select className="w-full rounded-xl border border-blue-100 px-3 py-2" value={moduleId} onChange={(e) => setModuleId(e.target.value)} required>
-          <option value="">Select module</option>
-          {modules.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.course_title} — {m.title}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          className="w-full"
+          value={moduleId}
+          onChange={setModuleId}
+          options={[
+            { value: '', label: 'Select module' },
+            ...modules.map((m) => ({ value: m.id, label: `${m.course_title} — ${m.title}` })),
+          ]}
+          placeholder="Select module"
+          searchPlaceholder="Search modules..."
+          required
+        />
         <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <textarea className="w-full rounded-xl border border-blue-100 px-3 py-2" rows={6} placeholder="Markdown content..." value={content} onChange={(e) => setContent(e.target.value)} required />
         <button type="submit" className="rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white">
@@ -439,14 +448,18 @@ export function AdminExercisesPage() {
       {msg && <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">{msg}</div>}
       <form onSubmit={create} className="space-y-3 rounded-2xl border border-blue-100 bg-white p-5">
         <h2 className="font-display text-lg font-semibold">Create Exercise</h2>
-        <select className="w-full rounded-xl border border-blue-100 px-3 py-2" value={lessonId} onChange={(e) => setLessonId(e.target.value)} required>
-          <option value="">Select lesson</option>
-          {lessons.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.course_title} — {l.title}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          className="w-full"
+          value={lessonId}
+          onChange={setLessonId}
+          options={[
+            { value: '', label: 'Select lesson' },
+            ...lessons.map((l) => ({ value: l.id, label: `${l.course_title} — ${l.title}` })),
+          ]}
+          placeholder="Select lesson"
+          searchPlaceholder="Search lessons..."
+          required
+        />
         <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Exercise title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <textarea className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Question" value={question} onChange={(e) => setQuestion(e.target.value)} required />
         <input className="w-full rounded-xl border border-blue-100 px-3 py-2" placeholder="Options (comma-separated, optional)" value={options} onChange={(e) => setOptions(e.target.value)} />

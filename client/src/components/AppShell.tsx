@@ -1,7 +1,9 @@
+import { useRef } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BookOpen, Bot, Home, LayoutDashboard, LogOut, UserRound, ChartColumnIncreasing, GraduationCap } from 'lucide-react';
 import { useAuth } from '../auth';
 import { BrandLogo } from './BrandLogo';
+import { DynamicSelectEnhancer } from './DynamicSelectEnhancer';
 
 const studentLinks = [
   { to: '/app', label: 'Dashboard', icon: Home, end: true },
@@ -22,6 +24,7 @@ const adminLinks = [
 export function AppShell({ variant }: { variant: 'student' | 'admin' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const mainRef = useRef<HTMLElement>(null);
   const links = variant === 'admin' ? adminLinks : studentLinks;
 
   return (
@@ -80,7 +83,8 @@ export function AppShell({ variant }: { variant: 'student' | 'admin' }) {
           ))}
         </nav>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+      <main ref={mainRef} className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <DynamicSelectEnhancer scope={mainRef} />
         <Outlet />
       </main>
     </div>
