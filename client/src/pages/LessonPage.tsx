@@ -138,7 +138,7 @@ export function LessonPage() {
 
   if (loading) return <Loading />;
   if (error && !data) return <ErrorBox message={error} />;
-  if (!data) return null;
+  if (!data) return <ErrorBox message={error || 'Casharka lama helin.'} />;
 
   const { lesson, curriculum } = data;
 
