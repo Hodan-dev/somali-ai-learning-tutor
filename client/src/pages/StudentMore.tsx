@@ -34,49 +34,48 @@ export function ProgressPage() {
         <p className="mt-1 text-muted">La soco casharrada, layliyada, iyo koorsooyinka.</p>
       </div>
 
-      <section className="rounded-3xl border border-blue-100 bg-white p-6">
-        <h2 className="font-display text-lg font-semibold">Overall Progress</h2>
-        <div className="mt-3 flex items-end gap-4">
-          <div className="font-display text-5xl font-bold text-sea">{data.overall}%</div>
-          <div className="mb-2 flex-1">
+      <section className="rounded-2xl border border-blue-100 bg-white p-5">
+        <div className="flex items-center gap-4">
+          <div className="font-display text-4xl font-bold text-sea">{data.overall}%</div>
+          <div className="flex-1">
+            <p className="mb-1.5 text-sm text-muted">Guud ahaan</p>
             <ProgressBar value={data.overall} />
           </div>
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <Stat label="Lessons Completed" value={`${data.lessonsCompleted} / ${data.lessonsTotal}`} />
-          <Stat label="Exercises Completed" value={String(data.exercisesCompleted)} />
-          <Stat label="Average Score" value={`${data.averageScore}%`} />
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+          <Stat label="Cashar" value={`${data.lessonsCompleted}/${data.lessonsTotal}`} />
+          <Stat label="Layli" value={String(data.exercisesCompleted)} />
+          <Stat label="Avg" value={`${data.averageScore}%`} />
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="font-display text-xl font-semibold">By Course</h2>
+      <section className="space-y-2">
+        <h2 className="font-display text-lg font-semibold">Koorsooyinka</h2>
         {data.courses.map((c) => (
           <Link
             key={c.id}
             to={`/app/courses/${c.id}`}
-            className="block rounded-2xl border border-blue-100 bg-white p-4 hover:border-blue-200"
+            className="flex items-center gap-3 rounded-xl border border-blue-100 bg-white px-3 py-2.5 hover:border-blue-200"
           >
-            <div className="flex justify-between text-sm">
-              <span className="font-semibold text-ink">
-                {c.title} <span className="font-normal text-muted">· {c.category}</span>
-              </span>
-              <span className="font-semibold text-sea">{c.progress}%</span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-semibold text-ink">{c.title}</div>
+              <div className="mt-1.5">
+                <ProgressBar value={c.progress} />
+              </div>
             </div>
-            <div className="mt-2">
-              <ProgressBar value={c.progress} />
-            </div>
+            <span className="shrink-0 text-sm font-bold text-sea">{c.progress}%</span>
           </Link>
         ))}
       </section>
 
       {data.completedCourses.length > 0 && (
-        <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-          <h2 className="font-display text-lg font-semibold">Completed Courses 🎉</h2>
-          <ul className="mt-3 space-y-2 text-sm">
+        <section className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <h2 className="font-display text-base font-semibold">La dhammeeyay</h2>
+          <ul className="mt-2 space-y-1 text-sm text-ink">
             {data.completedCourses.map((c, i) => (
-              <li key={i}>
-                {c.title} ({c.category}) — Final Score: {Math.round(c.final_score)}%
+              <li key={i} className="flex justify-between gap-2">
+                <span className="truncate">{c.title}</span>
+                <span className="shrink-0 font-semibold text-sea">{Math.round(c.final_score)}%</span>
               </li>
             ))}
           </ul>
@@ -88,9 +87,9 @@ export function ProgressPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-sea-light/60 p-4">
-      <div className="text-xs text-muted">{label}</div>
-      <div className="mt-1 font-display text-xl font-bold text-ink">{value}</div>
+    <div className="rounded-lg bg-sea-light/60 px-2 py-2.5">
+      <div className="text-[11px] text-muted">{label}</div>
+      <div className="mt-0.5 font-display text-base font-bold text-ink">{value}</div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Bot, CheckCircle2, Play } from 'lucide-react';
 import { useAuth } from '../auth';
 import { api } from '../lib/api';
-import { Badge, ErrorBox, Loading, ProgressBar } from '../components/ui';
+import { ErrorBox, Loading, ProgressBar } from '../components/ui';
 
 interface ProgressData {
   overall: number;
@@ -96,23 +96,20 @@ export function StudentDashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="rounded-2xl border border-blue-100 bg-white p-5 lg:col-span-2">
           <h3 className="font-display text-lg font-semibold">My Courses</h3>
-          <div className="mt-4 space-y-4">
+          <div className="mt-3 space-y-2">
             {data.courses.map((c) => (
               <Link
                 key={c.id}
                 to={`/app/courses/${c.id}`}
-                className="block rounded-xl border border-blue-50 p-4 hover:border-blue-200 hover:bg-sea-light/40"
+                className="flex items-center gap-3 rounded-xl border border-blue-50 px-3 py-2.5 hover:border-blue-200 hover:bg-sea-light/40"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-ink">{c.title}</div>
-                    <Badge>{c.category}</Badge>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-ink">{c.title}</div>
+                  <div className="mt-1.5">
+                    <ProgressBar value={c.progress} />
                   </div>
-                  <span className="text-sm font-semibold text-sea">{c.progress}%</span>
                 </div>
-                <div className="mt-3">
-                  <ProgressBar value={c.progress} />
-                </div>
+                <span className="shrink-0 text-sm font-bold text-sea">{c.progress}%</span>
               </Link>
             ))}
           </div>
