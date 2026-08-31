@@ -1,6 +1,14 @@
 const TOKEN_KEY = 'somali_tutor_token';
 const USER_KEY = 'somali_tutor_user';
 
+/** Production API host (e.g. Render). Empty in dev — Vite proxy handles /api. */
+export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
+export function apiUrl(path: string) {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return `${API_BASE}${path}`;
+}
+
 export type Role = 'ADMIN' | 'STUDENT';
 
 export interface User {
@@ -46,7 +54,7 @@ export async function api<T = unknown>(
     headers.set('Content-Type', 'application/json');
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     ...options,
     headers,
     body: options.json !== undefined ? JSON.stringify(options.json) : options.body,

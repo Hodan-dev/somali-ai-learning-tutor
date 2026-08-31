@@ -1,0 +1,24 @@
+# Deploy the API on Render (free tier). Pair with Vercel for the React frontend.
+# Dashboard: https://dashboard.render.com → New → Blueprint → connect this repo
+
+services:
+  - type: web
+    name: ardeytechhub-api
+    runtime: node
+    plan: free
+    buildCommand: npm install --prefix server
+    startCommand: npm run start --prefix server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      - key: UPLOAD_DIR
+        value: uploads

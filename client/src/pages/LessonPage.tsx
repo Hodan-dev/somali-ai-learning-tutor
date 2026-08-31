@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Bot, Check, Menu, Send, Trash2, X } from 'lucide-react';
-import { api, getToken } from '../lib/api';
+import { api, apiUrl, getToken } from '../lib/api';
 import { Badge, ErrorBox, LessonContent, Loading } from '../components/ui';
 const PdfViewer = lazy(() => import('../components/PdfViewer').then((m) => ({ default: m.PdfViewer })));
 
@@ -235,7 +235,7 @@ export function LessonPage() {
               }
             >
               <PdfViewer
-                url={lesson.pdf_url}
+                url={apiUrl(lesson.pdf_url)}
                 title={lesson.title}
                 startPage={lesson.pdf_start_page}
                 endPage={lesson.pdf_end_page}
