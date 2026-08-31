@@ -14,6 +14,34 @@ A Somali-friendly educational web platform where students learn **Physics**, **B
 
 ## Quick start
 
+### Windows (Hodan laptop)
+
+Project folder:
+
+```text
+C:\Users\HODAN\Projects\somali-ai-learning-tutor
+```
+
+**First time** — open **PowerShell** and run:
+
+```powershell
+mkdir C:\Users\HODAN\Projects -Force
+cd C:\Users\HODAN\Projects
+git clone https://github.com/Hodan-dev/somali-ai-learning-tutor.git
+cd somali-ai-learning-tutor
+powershell -ExecutionPolicy Bypass -File scripts\setup-hodan-windows.ps1
+```
+
+Then edit `server\.env` (MongoDB Atlas URI + Gemini key) and run:
+
+```powershell
+npm run dev
+```
+
+Open **http://127.0.0.1:3850**
+
+### All platforms
+
 ```bash
 # From repo root
 npm install
