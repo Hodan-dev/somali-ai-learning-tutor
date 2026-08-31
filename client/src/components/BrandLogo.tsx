@@ -13,11 +13,13 @@ export function BrandLogo({
   size = 'md',
   showText = true,
   subtitle,
+  theme = 'light',
 }: {
   to?: string;
   size?: Size;
   showText?: boolean;
   subtitle?: string;
+  theme?: 'light' | 'dark';
 }) {
   const content = (
     <>
@@ -25,8 +27,8 @@ export function BrandLogo({
         <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
           <defs>
             <linearGradient id="logoGrad" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#3b82f6" />
-              <stop offset="1" stopColor="#1e3a8a" />
+              <stop stopColor="#38bdf8" />
+              <stop offset="1" stopColor="#0284c7" />
             </linearGradient>
           </defs>
           <rect width="48" height="48" rx="14" fill="url(#logoGrad)" />
@@ -38,20 +40,21 @@ export function BrandLogo({
             fill="rgba(255,255,255,0.12)"
           />
           <path d="M24 11v27" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity="0.9" />
-          <path d="M17 19.5h14M17 24h14M17 28.5h9" stroke="#bfdbfe" strokeWidth="1.6" strokeLinecap="round" />
-          <circle cx="34" cy="14" r="5" fill="#60a5fa" stroke="white" strokeWidth="1.5" />
-          <path
-            d="M34 12v4M32 14h4"
-            stroke="white"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          />
+          <path d="M17 19.5h14M17 24h14M17 28.5h9" stroke="#bae6fd" strokeWidth="1.6" strokeLinecap="round" />
+          <circle cx="34" cy="14" r="5" fill="#7dd3fc" stroke="white" strokeWidth="1.5" />
+          <path d="M34 12v4M32 14h4" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
         </svg>
       </div>
       {showText && (
         <div className="leading-tight">
-          <div className="font-display text-sm font-bold text-ink sm:text-base">Somali Tutor AI</div>
-          <div className="text-[11px] font-medium text-blue-600">
+          <div
+            className={`font-display text-sm font-bold sm:text-base ${
+              theme === 'dark' ? 'text-white' : 'text-ink'
+            }`}
+          >
+            Somali Tutor AI
+          </div>
+          <div className={`text-[11px] font-medium ${theme === 'dark' ? 'text-sky-300' : 'text-sky-600'}`}>
             {subtitle || 'Baro · Learning Platform'}
           </div>
         </div>

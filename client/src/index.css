@@ -5,12 +5,15 @@
   --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --color-ink: #0f172a;
   --color-muted: #64748b;
-  --color-sea: #2563eb;
-  --color-sea-dark: #1e3a8a;
-  --color-sea-light: #dbeafe;
+  --color-sea: #0ea5e9;
+  --color-sea-dark: #0284c7;
+  --color-sea-light: #e0f2fe;
+  --color-sidebar: #111827;
+  --color-sidebar-hover: #1f2937;
+  --color-sidebar-active: #1e293b;
   --color-sand: #f8fafc;
-  --color-amber: #3b82f6;
-  --color-sky: #eff6ff;
+  --color-amber: #38bdf8;
+  --color-sky: #f0f9ff;
   --color-success: #16a34a;
   --color-danger: #dc2626;
 }
@@ -34,8 +37,8 @@ body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   background:
-    radial-gradient(1100px 520px at 0% -5%, #dbeafe 0%, transparent 50%),
-    radial-gradient(900px 480px at 100% 0%, #e0f2fe 0%, transparent 45%),
+    radial-gradient(1100px 520px at 0% -5%, #e0f2fe 0%, transparent 50%),
+    radial-gradient(900px 480px at 100% 0%, #f0f9ff 0%, transparent 45%),
     linear-gradient(180deg, #ffffff 0%, #f8fafc 45%, #f1f5f9 100%);
   -webkit-font-smoothing: antialiased;
 }
@@ -75,8 +78,8 @@ body {
 .prose-lesson blockquote {
   margin: 1rem 0;
   padding: 0.85rem 1rem;
-  border-left: 4px solid #3b82f6;
-  background: #eff6ff;
+  border-left: 4px solid #0ea5e9;
+  background: #f0f9ff;
   border-radius: 0 0.6rem 0.6rem 0;
 }
 
@@ -100,15 +103,15 @@ body {
 
 .prose-lesson code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: #eff6ff;
+  background: #f0f9ff;
   padding: 0.1rem 0.35rem;
   border-radius: 0.3rem;
   font-size: 0.9em;
 }
 
 .prose-lesson pre {
-  background: #1e3a8a;
-  color: #eff6ff;
+  background: #0284c7;
+  color: #f0f9ff;
   padding: 1rem;
   border-radius: 0.75rem;
   overflow-x: auto;
@@ -124,14 +127,14 @@ body {
 .progress-bar {
   height: 0.4rem;
   border-radius: 999px;
-  background: #dbeafe;
+  background: #e0f2fe;
   overflow: hidden;
 }
 
 .progress-bar > span {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  background: linear-gradient(90deg, #0ea5e9, #38bdf8);
   border-radius: 999px;
 }
 
