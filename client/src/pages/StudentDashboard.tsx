@@ -50,6 +50,14 @@ const categoryAccent: Record<string, string> = {
   Mathematics: 'from-rose-500 to-rose-700',
 };
 
+const categoryIconColor: Record<string, string> = {
+  Physics: 'text-blue-600',
+  Biology: 'text-emerald-600',
+  English: 'text-violet-600',
+  Chemistry: 'text-orange-600',
+  Mathematics: 'text-rose-600',
+};
+
 function StatCard({
   title,
   value,
@@ -112,6 +120,7 @@ function CourseCard({
   to: string;
 }) {
   const accent = categoryAccent[category] || 'from-sea to-sea-dark';
+  const iconColor = categoryIconColor[category] || 'text-sea';
 
   return (
     <Link
@@ -119,9 +128,7 @@ function CourseCard({
       className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sea/30 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className={`rounded-xl bg-gradient-to-br ${accent} p-2.5 text-white shadow-sm`}>
-          <BookOpen className="h-5 w-5" />
-        </div>
+        <BookOpen className={`h-6 w-6 shrink-0 ${iconColor}`} />
         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
           {category}
         </span>
