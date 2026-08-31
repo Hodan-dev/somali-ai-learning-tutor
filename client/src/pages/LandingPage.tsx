@@ -173,9 +173,6 @@ export function LandingPage() {
               Admin / Student Login
             </Link>
           </div>
-          <p className="mt-5 text-xs text-blue-100">
-            Demo: ahmed@student.so / password123 · admin@somalilearn.so / password123
-          </p>
         </div>
       </section>
 
