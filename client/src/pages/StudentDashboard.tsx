@@ -1,12 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bot, CheckCircle2, Play } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  Bot,
+  CheckCircle2,
+  ClipboardList,
+  Play,
+  Sparkles,
+  Target,
+  TrendingUp,
+} from 'lucide-react';
+import type { ComponentType } from 'react';
 import { useAuth } from '../auth';
 import { api } from '../lib/api';
-import { CourseProgressRow, ErrorBox, Loading } from '../components/ui';
+import { ErrorBox, Loading } from '../components/ui';
 
 interface ProgressData {
   overall: number;
+  lessonsCompleted: number;
+  lessonsTotal: number;
+  exercisesCompleted: number;
+  exercisesAttempted: number;
+  averageScore: number;
   courses: Array<{
     id: string;
     title: string;
@@ -23,6 +39,96 @@ interface ProgressData {
     course_title: string;
     category: string;
   } | null;
+}
+
+const categoryAccent: Record<string, string> = {
+  Physics: 'from-blue-500 to-blue-700',
+  Biology: 'from-emerald-500 to-emerald-700',
+  English: 'from-violet-500 to-violet-700',
+  Chemistry: 'from-orange-500 to-orange-600',
+  Mathematics: 'from-rose-500 to-rose-700',
+};
+
+function StatCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  gradient,
+}: {
+  title: string;
+  value: string | number;
+  subtitle: string;
+  icon: ComponentType<{ className?: string }>;
+  gradient: string;
+}) {
+  return (
+    <article className={`overflow-hidden rounded-2xl p-5 text-white shadow-md ${gradient}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="text-right">
+          <p className="text-xs font-medium text-white/80">{title}</p>
+          <p className="font-display text-2xl font-bold sm:text-3xl">{value}</p>
+        </div>
+      </div>
+      <p className="mt-3 text-xs text-white/85">{subtitle}</p>
+    </article>
+  );
+}
+
+function CourseCard({
+  title,
+  category,
+  progress,
+  completed,
+  total,
+  to,
+}: {
+  title: string;
+  category: string;
+  progress: number;
+  completed: number;
+  total: number;
+  to: string;
+}) {
+  const accent = categoryAccent[category] || 'from-sea to-sea-dark';
+
+  return (
+    <Link
+      to={to}
+      className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sea/30 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className={`rounded-xl bg-gradient-to-br ${accent} p-2.5 text-white shadow-sm`}>
+          <BookOpen className="h-5 w-5" />
+        </div>
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+          {category}
+        </span>
+      </div>
+      <h3 className="mt-4 font-display text-base font-semibold text-ink group-hover:text-sea">{title}</h3>
+      <p className="mt-1 text-xs text-muted">
+        {completed} of {total} lessons completed
+      </p>
+      <div className="mt-4">
+        <div className="mb-1.5 flex justify-between text-xs">
+          <span className="text-muted">Progress</span>
+          <span className="font-bold text-sea">{progress}%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className={`h-full rounded-full bg-gradient-to-r ${accent} transition-all`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+      <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-sea">
+        Open course <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+      </span>
+    </Link>
+  );
 }
 
 export function StudentDashboard() {
@@ -42,102 +148,170 @@ export function StudentDashboard() {
   if (error) return <ErrorBox message={error} />;
   if (!data) return null;
 
+  const continueCourse = data.continueLearning
+    ? data.courses.find((c) => c.id === data.continueLearning?.course_id)
+    : null;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold text-ink">Salaan, {user?.name} 👋</h1>
-        <p className="mt-1 text-muted">Sii wad barashadaada — LEARN → PRACTICE → ASK → IMPROVE</p>
+        <p className="text-sm font-medium text-sea">Student Dashboard</p>
+        <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Welcome back, {user?.name}</h1>
+        <p className="mt-1 text-sm text-muted">Track your learning — Learn, practice, ask AI, and improve.</p>
       </div>
 
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-sea to-sea-dark p-5 text-white sm:p-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-blue-100">Continue</p>
-        {data.continueLearning ? (
-          <>
-            <h2 className="mt-1 truncate font-display text-xl font-bold">{data.continueLearning.course_title}</h2>
-            <p className="mt-0.5 truncate text-sm text-blue-50">{data.continueLearning.lesson_title}</p>
-            <div className="mt-3 flex items-center gap-3">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
-                <div
-                  className="h-full rounded-full bg-sky-300"
-                  style={{
-                    width: `${data.courses.find((c) => c.id === data.continueLearning?.course_id)?.progress ?? 0}%`,
-                  }}
-                />
-              </div>
-              <span className="text-sm font-bold">
-                {data.courses.find((c) => c.id === data.continueLearning?.course_id)?.progress ?? 0}%
-              </span>
-            </div>
-            <Link
-              to={`/app/lessons/${data.continueLearning.lesson_id}`}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-sea-dark hover:bg-blue-50"
-            >
-              <Play className="h-4 w-4" /> Continue
-            </Link>
-          </>
-        ) : (
-          <>
-            <h2 className="mt-2 font-display text-2xl font-bold">Waad dhammaysay casharrada la heli karo!</h2>
-            <Link
-              to="/app/courses"
-              className="mt-6 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-sea-dark"
-            >
-              Explore Courses
-            </Link>
-          </>
-        )}
-      </section>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Overall Progress"
+          value={`${data.overall}%`}
+          subtitle="Across all enrolled courses"
+          icon={TrendingUp}
+          gradient="bg-gradient-to-br from-blue-500 to-blue-700"
+        />
+        <StatCard
+          title="Lessons Done"
+          value={`${data.lessonsCompleted}/${data.lessonsTotal}`}
+          subtitle="Completed lessons"
+          icon={BookOpen}
+          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
+        />
+        <StatCard
+          title="Exercises"
+          value={data.exercisesCompleted}
+          subtitle={`${data.exercisesAttempted} attempted`}
+          icon={ClipboardList}
+          gradient="bg-gradient-to-br from-violet-500 to-purple-700"
+        />
+        <StatCard
+          title="Average Score"
+          value={`${data.averageScore}%`}
+          subtitle="Exercise performance"
+          icon={Target}
+          gradient="bg-gradient-to-br from-orange-500 to-orange-600"
+        />
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <section className="rounded-2xl border border-blue-100 bg-white p-5 lg:col-span-2">
-          <h3 className="font-display text-lg font-semibold">My Courses</h3>
-          <div className="mt-3 space-y-2">
-            {data.courses.map((c) => (
-              <Link
-                key={c.id}
-                to={`/app/courses/${c.id}`}
-                className="block rounded-xl border border-blue-50 px-3 py-2.5 hover:border-blue-200 hover:bg-sea-light/40"
-              >
-                <CourseProgressRow
-                  title={c.title}
-                  subtitle={`${c.completed_lessons}/${c.total_lessons} cashar`}
-                  progress={c.progress}
-                />
-              </Link>
-            ))}
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="grid lg:grid-cols-[1fr_auto]">
+          <div className="border-b border-slate-100 bg-gradient-to-br from-sea to-sea-dark p-6 text-white lg:border-b-0 lg:border-r">
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-100">Continue learning</p>
+            {data.continueLearning ? (
+              <>
+                <h2 className="mt-2 font-display text-xl font-bold sm:text-2xl">{data.continueLearning.course_title}</h2>
+                <p className="mt-1 text-sm text-blue-50">{data.continueLearning.lesson_title}</p>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/20">
+                    <div
+                      className="h-full rounded-full bg-sky-300"
+                      style={{ width: `${continueCourse?.progress ?? 0}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold">{continueCourse?.progress ?? 0}%</span>
+                </div>
+                <Link
+                  to={`/app/lessons/${data.continueLearning.lesson_id}`}
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-sea-dark hover:bg-blue-50"
+                >
+                  <Play className="h-4 w-4" /> Resume lesson
+                </Link>
+              </>
+            ) : (
+              <>
+                <h2 className="mt-2 font-display text-xl font-bold">You are all caught up!</h2>
+                <p className="mt-1 text-sm text-blue-50">Explore more courses or practice with the AI tutor.</p>
+                <Link
+                  to="/app/courses"
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-sea-dark hover:bg-blue-50"
+                >
+                  Browse courses <ArrowRight className="h-4 w-4" />
+                </Link>
+              </>
+            )}
           </div>
-        </section>
-
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-blue-100 bg-white p-5">
-            <h3 className="font-display text-lg font-semibold">Recent Activity</h3>
-            <ul className="mt-4 space-y-3">
-              {data.activity.length === 0 && (
-                <li className="text-sm text-muted">Weli wax dhaqdhaqaaq ah ma jiro.</li>
-              )}
-              {data.activity.map((a, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-ink">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span>{a.detail || a.action}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-            <div className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
-              <Bot className="h-5 w-5 text-blue-700" /> AI Tutor
-            </div>
-            <p className="mt-2 text-sm text-muted">Ma u baahan tahay caawimaad cashar ah?</p>
+          <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-1 lg:w-56">
             <Link
               to="/app/tutor"
-              className="mt-4 inline-flex rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white hover:bg-sea-dark"
+              className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 transition hover:border-sea/30 hover:bg-blue-50"
             >
-              Ask AI Tutor
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sea text-white">
+                <Bot className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-ink">AI Tutor</div>
+                <div className="text-xs text-muted">Ask a question</div>
+              </div>
             </Link>
-          </section>
+            <Link
+              to="/app/progress"
+              className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 transition hover:border-sea/30 hover:bg-blue-50"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-ink">My Progress</div>
+                <div className="text-xs text-muted">Full report</div>
+              </div>
+            </Link>
+          </div>
         </div>
-      </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-ink">My Courses</h2>
+            <p className="text-sm text-muted">{data.courses.length} enrolled subjects</p>
+          </div>
+          <Link to="/app/courses" className="text-sm font-semibold text-sea hover:underline">
+            View all
+          </Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {data.courses.map((c) => (
+            <CourseCard
+              key={c.id}
+              title={c.title}
+              category={c.category}
+              progress={c.progress}
+              completed={c.completed_lessons}
+              total={c.total_lessons}
+              to={`/app/courses/${c.id}`}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="font-display text-lg font-semibold text-ink">Recent Activity</h2>
+        <p className="mt-1 text-sm text-muted">Your latest learning actions</p>
+        <ul className="mt-4 space-y-3">
+          {data.activity.length === 0 ? (
+            <li className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-muted">
+              No activity yet. Start a lesson to see updates here.
+            </li>
+          ) : (
+            data.activity.slice(0, 6).map((a, i) => (
+              <li key={i} className="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-ink">{a.detail || a.action}</p>
+                  {a.created_at && (
+                    <p className="mt-0.5 text-xs text-muted">
+                      {new Date(a.created_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
     </div>
   );
 }
