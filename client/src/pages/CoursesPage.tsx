@@ -16,6 +16,7 @@ interface Course {
 }
 
 const tableColumns = [
+  { key: 'no', label: '#', center: true },
   { key: 'subject', label: 'Subject' },
   { key: 'course', label: 'Course' },
   { key: 'lessons', label: 'Lessons', center: true },
@@ -71,11 +72,11 @@ export function CoursesPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
             <thead>
-              <tr className="border-b-2 border-slate-200 bg-slate-50">
+              <tr className="border-b border-blue-200 bg-blue-50">
                 {tableColumns.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-700 ${
+                    className={`px-5 py-3.5 text-xs font-bold uppercase tracking-wide text-sea-dark ${
                       'alignRight' in col && col.alignRight
                         ? 'text-right'
                         : 'center' in col && col.center
@@ -88,20 +89,25 @@ export function CoursesPage() {
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-200">
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-muted">
+                  <td colSpan={8} className="px-5 py-12 text-center text-muted">
                     No courses found for this filter.
                   </td>
                 </tr>
               ) : (
-                visible.map((c) => (
-                  <tr key={c.id} className="transition hover:bg-slate-50/80">
-                    <td className="px-5 py-5">
+                visible.map((c, index) => (
+                  <tr key={c.id} className="bg-white transition hover:bg-blue-50/40">
+                    <td className="px-5 py-4 text-center">
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
                       <span className="font-semibold text-ink">{c.category}</span>
                     </td>
-                    <td className="px-5 py-5">
+                    <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <BookOpen className="h-5 w-5 shrink-0 text-sea" />
                         <div className="min-w-0">
@@ -110,10 +116,14 @@ export function CoursesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-5 text-center text-base font-semibold text-ink">{c.lessonCount}</td>
-                    <td className="px-5 py-5 text-center text-base font-semibold text-ink">{c.exerciseCount}</td>
-                    <td className="px-5 py-5 text-slate-700">{c.difficulty}</td>
-                    <td className="px-5 py-5">
+                    <td className="px-5 py-4 text-center">
+                      <span className="font-display text-lg font-bold text-ink">{c.lessonCount}</span>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <span className="font-display text-lg font-bold text-ink">{c.exerciseCount}</span>
+                    </td>
+                    <td className="px-5 py-4 text-slate-700">{c.difficulty}</td>
+                    <td className="px-5 py-4">
                       <div className="min-w-[140px]">
                         <div className="mb-2 flex justify-between text-xs font-medium">
                           <span className="text-slate-500">Complete</span>
