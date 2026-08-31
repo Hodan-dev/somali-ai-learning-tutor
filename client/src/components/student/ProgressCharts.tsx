@@ -128,49 +128,6 @@ export function CourseProgressBars({
   );
 }
 
-export function CategoryBarChart({
-  courses,
-}: {
-  courses: Array<{ category: string; progress: number }>;
-}) {
-  const grouped = courses.reduce<Record<string, { total: number; count: number }>>((acc, c) => {
-    if (!acc[c.category]) acc[c.category] = { total: 0, count: 0 };
-    acc[c.category].total += c.progress;
-    acc[c.category].count += 1;
-    return acc;
-  }, {});
-
-  const items = Object.entries(grouped).map(([category, v], i) => ({
-    category,
-    avg: Math.round(v.total / v.count),
-    color: categoryColor(category, i),
-  }));
-
-  const max = Math.max(...items.map((i) => i.avg), 1);
-
-  return (
-    <div className="flex h-52 items-end justify-between gap-3 px-1">
-      {items.map((item) => (
-        <div key={item.category} className="flex flex-1 flex-col items-center gap-2">
-          <span className="text-xs font-bold text-ink">{item.avg}%</span>
-          <div className="flex w-full flex-1 items-end">
-            <div
-              className="w-full rounded-t-lg transition-all"
-              style={{
-                height: `${Math.max(12, (item.avg / max) * 100)}%`,
-                background: `linear-gradient(to top, ${item.color}, ${item.color}99)`,
-              }}
-            />
-          </div>
-          <span className="max-w-[4.5rem] truncate text-center text-[10px] font-medium text-muted">
-            {item.category}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function LessonBreakdownDonut({
   completed,
   total,
