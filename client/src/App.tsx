@@ -2,7 +2,6 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { AppShell } from './components/AppShell';
-import { AdminShell } from './components/AdminShell';
 import { Loading } from './components/ui';
 
 const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
@@ -59,7 +58,7 @@ export default function App() {
       </Route>
 
       <Route element={<Protected role="ADMIN" />}>
-        <Route element={<AdminShell />}>
+        <Route element={<AppShell variant="admin" />}>
           <Route path="/admin" element={<Page><AdminDashboard /></Page>} />
           <Route path="/admin/courses" element={<Page><AdminCoursesPage /></Page>} />
           <Route path="/admin/lessons" element={<Page><AdminLessonsPage /></Page>} />
