@@ -7,7 +7,6 @@ import { ErrorBox, Loading } from '../components/ui';
 import {
   Award,
   BookOpenCheck,
-  CategoryBarChart,
   CourseProgressBars,
   Gauge,
   LessonBreakdownDonut,
@@ -96,23 +95,13 @@ export function ProgressPage() {
       </div>
 
       {data.courses.length > 0 && (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="font-display text-lg font-semibold text-ink">Koorsooyinka</h2>
-            <p className="mt-1 text-sm text-muted">Horumarka koorso kasta</p>
-            <div className="mt-4">
-              <CourseProgressBars courses={data.courses} />
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="font-display text-lg font-semibold text-ink">Mawduucyada</h2>
-            <p className="mt-1 text-sm text-muted">Celceliska horumarka mawduuc kasta</p>
-            <div className="mt-4">
-              <CategoryBarChart courses={data.courses} />
-            </div>
-          </section>
-        </div>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="font-display text-lg font-semibold text-ink">Koorsooyinka</h2>
+          <p className="mt-1 text-sm text-muted">Horumarka koorso kasta</p>
+          <div className="mt-4">
+            <CourseProgressBars courses={data.courses} />
+          </div>
+        </section>
       )}
 
       {data.completedCourses.length > 0 && (
