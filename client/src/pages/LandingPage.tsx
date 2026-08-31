@@ -434,88 +434,90 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <div className="rounded-[2rem] bg-gradient-to-r from-sea-dark to-sea px-6 py-10 text-white sm:px-10">
-          <h2 className="font-display text-2xl font-bold sm:text-3xl">Ready to start learning?</h2>
-          <p className="mt-2 max-w-xl text-blue-50">
-            Create your free student account today, or log in if you already joined.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-sea-dark hover:bg-blue-50"
-            >
-              <UserPlus className="h-4 w-4" />
-              Register as Student
-            </Link>
-            <Link
-              to="/login"
-              className="rounded-xl border border-white/40 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
-            >
-              Login
-            </Link>
+      <div className="bg-[#0038e8]">
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+          <div className="rounded-2xl border border-white/20 bg-white/10 px-6 py-10 backdrop-blur-sm sm:px-10">
+            <h2 className="font-display text-2xl font-bold text-white sm:text-3xl">Ready to start learning?</h2>
+            <p className="mt-2 max-w-xl text-blue-100">
+              Create your free student account today, or log in if you already joined.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[#0038e8] hover:bg-blue-50"
+              >
+                <UserPlus className="h-4 w-4" />
+                Register as Student
+              </Link>
+              <Link
+                to="/login"
+                className="rounded-xl border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                Login
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <footer className="bg-gradient-to-br from-[#0038e8] to-[#1d4ed8] text-white">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="sm:col-span-2">
-              <BrandLogo to="/" size="md" subtitle="Academic · Digital Learning" theme="dark" />
-              <p className="mt-4 max-w-sm text-sm leading-relaxed text-blue-100">
-                ArdeyTechHub — a simple academic platform for students to learn, practice, ask AI, and
-                track progress across five school subjects.
+        <footer className="text-white">
+          <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
+            <div className="grid gap-10 border-t border-white/20 pt-10 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="sm:col-span-2">
+                <BrandLogo to="/" size="md" subtitle="Academic · Digital Learning" theme="dark" />
+                <p className="mt-4 max-w-sm text-sm leading-relaxed text-blue-100">
+                  ArdeyTechHub — a simple academic platform for students to learn, practice, ask AI, and
+                  track progress across five school subjects.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-white">
+                  Navigation
+                </h3>
+                <ul className="mt-4 space-y-2 text-sm">
+                  {NAV_LINKS.map((link) => (
+                    <li key={link.href}>
+                      <a href={link.href} className="text-blue-100 transition hover:text-white">
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                  <li>
+                    <Link to="/register" className="text-blue-100 transition hover:text-white">
+                      Register
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/login" className="text-blue-100 transition hover:text-white">
+                      Login
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-white">
+                  Subjects
+                </h3>
+                <ul className="mt-4 space-y-2 text-sm text-blue-100">
+                  <li>Physics</li>
+                  <li>Biology</li>
+                  <li>English</li>
+                  <li>Chemistry</li>
+                  <li>Mathematics</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/20 pt-8 text-center text-sm text-blue-100 sm:flex-row sm:text-left">
+              <p>© {new Date().getFullYear()} ArdeyTechHub. All rights reserved.</p>
+              <p className="font-medium text-sky-200">
+                LEARN → PRACTICE → ASK → IMPROVE → TRACK → COMPLETE
               </p>
             </div>
-
-            <div>
-              <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-white">
-                Navigation
-              </h3>
-              <ul className="mt-4 space-y-2 text-sm">
-                {NAV_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <a href={link.href} className="text-blue-100 transition hover:text-white">
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-                <li>
-                  <Link to="/register" className="text-blue-100 transition hover:text-white">
-                    Register
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/login" className="text-blue-100 transition hover:text-white">
-                    Login
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-white">
-                Subjects
-              </h3>
-              <ul className="mt-4 space-y-2 text-sm text-blue-100">
-                <li>Physics</li>
-                <li>Biology</li>
-                <li>English</li>
-                <li>Chemistry</li>
-                <li>Mathematics</li>
-              </ul>
-            </div>
           </div>
-
-          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/20 pt-8 text-center text-sm text-blue-100 sm:flex-row sm:text-left">
-            <p>© {new Date().getFullYear()} ArdeyTechHub. All rights reserved.</p>
-            <p className="font-medium text-sky-200">
-              LEARN → PRACTICE → ASK → IMPROVE → TRACK → COMPLETE
-            </p>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }
