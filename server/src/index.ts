@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
+import bcrypt from 'bcryptjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDb } from './db.js';
@@ -78,6 +79,47 @@ app.get('/api/profile', authRequired, async (req, res) => {
   }
 
   res.json({ user: userOut, profile: { joinedAt: userOut.created_at } });
+});
+
+app.patch('/api/profile', authRequired, async (req, res) => {
+  const { name, currentPassword, newPassword } = req.body as {
+    name?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  };
+
+  const user = await User.findById(req.user!.id);
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+
+  if (name !== undefined) {
+    const trimmed = String(name).trim();
+    if (trimmed.length < 2) {
+      return res.status(400).json({ error: 'Name must be at least 2 characters.' });
+    }
+    user.name = trimmed;
+  }
+
+  if (newPassword) {
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'Current password is required to set a new password.' });
+    }
+    if (!bcrypt.compareSync(currentPassword, user.password)) {
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+    user.password = bcrypt.hashSync(String(newPassword), 10);
+  }
+
+  await user.save();
+  const userOut = toPlain(user.toObject());
+  delete (userOut as Record<string, unknown>).password;
+
+  res.json({
+    user: userOut,
+    message: 'Profile updated successfully.',
+  });
 });
 
 const servingClient = attachClientCache(app);

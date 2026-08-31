@@ -69,8 +69,8 @@ export function AppShell({ variant }: { variant: ShellVariant }) {
   const config = shellConfig[variant];
 
   return (
-    <div className="min-h-screen bg-[#eef2f7]">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
+    <div className="flex min-h-screen flex-col bg-[#eef2f7]">
+      <header className="sticky top-0 z-40 shrink-0 border-b border-slate-200 bg-white shadow-sm">
         <div className="flex h-16 items-center justify-between gap-4 px-4 lg:px-6">
           <BrandLogo to={config.home} subtitle={config.subtitle} />
 
@@ -124,8 +124,8 @@ export function AppShell({ variant }: { variant: ShellVariant }) {
         </div>
       </header>
 
-      <div className="flex">
-        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
+      <div className="flex min-h-0 flex-1">
+        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-white lg:block">
           <div className="px-5 py-6">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Main Menu</p>
             <nav className="mt-4 space-y-1" aria-label={`${config.roleLabel} navigation`}>
@@ -143,7 +143,7 @@ export function AppShell({ variant }: { variant: ShellVariant }) {
                   }
                 >
                   <span className="flex items-center gap-3">
-                    <link.icon className="h-5 w-5" />
+                    <link.icon className="h-5 w-5 shrink-0" />
                     {link.label}
                   </span>
                   <span className="text-xs opacity-60">›</span>
@@ -153,8 +153,11 @@ export function AppShell({ variant }: { variant: ShellVariant }) {
           </div>
         </aside>
 
-        <main ref={mainRef} className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:py-8">
-          <nav className="mb-4 flex gap-2 overflow-x-auto lg:hidden" aria-label={`${config.roleLabel} mobile navigation`}>
+        <main ref={mainRef} className="flex min-h-[calc(100vh-4rem)] min-w-0 flex-1 flex-col px-4 py-6 sm:px-6 lg:py-8">
+          <nav
+            className="mb-4 flex shrink-0 gap-2 overflow-x-auto lg:hidden"
+            aria-label={`${config.roleLabel} mobile navigation`}
+          >
             {config.links.map((link) => (
               <NavLink
                 key={link.to}
@@ -170,8 +173,10 @@ export function AppShell({ variant }: { variant: ShellVariant }) {
               </NavLink>
             ))}
           </nav>
-          <DynamicSelectEnhancer scope={mainRef} />
-          <Outlet />
+          <div className="w-full flex-1">
+            <DynamicSelectEnhancer scope={mainRef} />
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

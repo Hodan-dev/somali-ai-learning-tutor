@@ -6,6 +6,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<User>;
   register: (name: string, email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -42,6 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         clearSession();
         setUser(null);
+      },
+      updateUser(updated) {
+        const token = localStorage.getItem('somali_tutor_token');
+        if (token) setSession(token, updated);
+        setUser(updated);
       },
     }),
     [user]

@@ -58,11 +58,35 @@ export function EmptyState({ title, body }: { title: string; body: string }) {
   );
 }
 
-export function Loading({ label = 'Soo raraya...' }: { label?: string }) {
+export function Loading({ label = 'Soo raraya...', fullPage = false }: { label?: string; fullPage?: boolean }) {
+  if (fullPage) {
+    return <PageSkeleton label={label} />;
+  }
   return (
     <div className="flex items-center justify-center gap-3 py-16 text-muted">
       <span className="h-5 w-5 animate-spin rounded-full border-2 border-sea border-t-transparent" />
       <span>{label}</span>
+    </div>
+  );
+}
+
+export function PageSkeleton({ label }: { label?: string }) {
+  return (
+    <div className="min-h-[calc(100vh-10rem)] w-full animate-pulse">
+      {label ? <p className="mb-4 text-sm text-muted">{label}</p> : null}
+      <div className="h-8 w-56 rounded-lg bg-slate-200" />
+      <div className="mt-3 h-4 w-80 max-w-full rounded bg-slate-100" />
+      <div className="mt-8 grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-44 rounded-2xl bg-slate-200" />
+        ))}
+      </div>
+      <div className="mt-6 h-48 rounded-2xl bg-slate-100" />
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-40 rounded-2xl bg-slate-100" />
+        ))}
+      </div>
     </div>
   );
 }

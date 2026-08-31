@@ -1,7 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { Pencil, Save } from 'lucide-react';
+import { useAuth } from '../auth';
 import { api } from '../lib/api';
 import { CourseProgressRow, ErrorBox, Loading, ProgressBar } from '../components/ui';
+import type { User } from '../lib/api';
 
 export function ProgressPage() {
   const [data, setData] = useState<{
@@ -23,7 +26,7 @@ export function ProgressPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Loading />;
+  if (loading) return <Loading fullPage />;
   if (error) return <ErrorBox message={error} />;
   if (!data) return null;
 
@@ -89,6 +92,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 export function ProfilePage() {
+  const { user, updateUser } = useAuth();
   const [data, setData] = useState<{
     user: { name: string; email: string; created_at: string };
     profile: {
@@ -100,6 +104,13 @@ export function ProfilePage() {
   } | null>(null);
   const [progress, setProgress] = useState<{ overall: number; averageScore: number } | null>(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [name, setName] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -108,31 +119,168 @@ export function ProfilePage() {
     ])
       .then(([p, pr]) => {
         setData(p);
+        setName(p.user.name);
         setProgress(pr);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  if (error) return <ErrorBox message={error} />;
-  if (!data) return <Loading />;
+  async function saveProfile(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    setMsg('');
+    try {
+      const payload: { name: string; currentPassword?: string; newPassword?: string } = { name: name.trim() };
+      if (newPassword) {
+        payload.currentPassword = currentPassword;
+        payload.newPassword = newPassword;
+      }
+      const res = await api<{ user: User; message: string }>('/api/profile', {
+        method: 'PATCH',
+        json: payload,
+      });
+      setData((prev) => (prev ? { ...prev, user: { ...prev.user, name: res.user.name } } : prev));
+      updateUser({ ...user!, name: res.user.name, email: res.user.email, role: res.user.role });
+      setMsg(res.message);
+      setEditing(false);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save profile');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <Loading fullPage />;
+  if (error && !data) return <ErrorBox message={error} />;
+  if (!data) return null;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="font-display text-3xl font-bold text-ink">Profile</h1>
-      <div className="rounded-2xl border border-blue-100 bg-white p-6">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sea font-display text-2xl font-bold text-white">
-          {data.user.name.charAt(0)}
+    <div className="w-full space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-sea">Account</p>
+          <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">My Profile</h1>
+          <p className="mt-1 text-sm text-muted">View and update your personal information.</p>
         </div>
-        <h2 className="mt-4 font-display text-2xl font-semibold">{data.user.name}</h2>
-        <p className="text-muted">{data.user.email}</p>
-        <dl className="mt-6 space-y-3 text-sm">
-          <Row label="Joined" value={new Date(data.profile.joinedAt).toLocaleDateString()} />
-          <Row label="Courses enrolled" value={String(data.profile.enrolledCourses ?? 0)} />
-          <Row label="Courses completed" value={String(data.profile.completedCourses ?? 0)} />
-          <Row label="Lessons completed" value={String(data.profile.lessonsCompleted ?? 0)} />
-          <Row label="Overall progress" value={`${progress?.overall ?? 0}%`} />
-          <Row label="Exercise performance" value={`${progress?.averageScore ?? 0}% avg`} />
-        </dl>
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-sm hover:bg-slate-50"
+          >
+            <Pencil className="h-4 w-4" /> Edit profile
+          </button>
+        )}
+      </div>
+
+      {error && <ErrorBox message={error} />}
+      {msg && <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{msg}</div>}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sea to-sea-dark font-display text-2xl font-bold text-white">
+              {data.user.name.charAt(0)}
+            </div>
+            <div>
+              <h2 className="font-display text-xl font-semibold text-ink">{data.user.name}</h2>
+              <p className="text-sm text-muted">{data.user.email}</p>
+              <p className="mt-1 text-xs text-muted">
+                Member since {new Date(data.profile.joinedAt).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+
+          {editing ? (
+            <form onSubmit={saveProfile} className="mt-6 space-y-4 border-t border-slate-100 pt-6">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-ink">Full name</label>
+                <input
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-sea focus:bg-white focus:ring-2 focus:ring-sea/20"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  minLength={2}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-ink">Email</label>
+                <input
+                  className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-muted"
+                  value={data.user.email}
+                  disabled
+                />
+                <p className="mt-1 text-xs text-muted">Email cannot be changed.</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-sm font-medium text-ink">Change password (optional)</p>
+                <div className="mt-3 space-y-3">
+                  <input
+                    type="password"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-sea focus:ring-2 focus:ring-sea/20"
+                    placeholder="Current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                  <input
+                    type="password"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-sea focus:ring-2 focus:ring-sea/20"
+                    placeholder="New password (min 6 characters)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    minLength={6}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-xl bg-sea px-5 py-2.5 text-sm font-semibold text-white hover:bg-sea-dark disabled:opacity-60"
+                >
+                  <Save className="h-4 w-4" /> {saving ? 'Saving...' : 'Save changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(false);
+                    setName(data.user.name);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setError('');
+                  }}
+                  className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-ink hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <dl className="mt-6 space-y-3 border-t border-slate-100 pt-6 text-sm">
+              <Row label="Full name" value={data.user.name} />
+              <Row label="Email" value={data.user.email} />
+              <Row label="Role" value="Student" />
+              <Row label="Joined" value={new Date(data.profile.joinedAt).toLocaleDateString()} />
+            </dl>
+          )}
+        </section>
+
+        <aside className="space-y-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="font-display font-semibold text-ink">Learning stats</h3>
+            <dl className="mt-4 space-y-3 text-sm">
+              <Row label="Courses enrolled" value={String(data.profile.enrolledCourses ?? 0)} />
+              <Row label="Courses completed" value={String(data.profile.completedCourses ?? 0)} />
+              <Row label="Lessons completed" value={String(data.profile.lessonsCompleted ?? 0)} />
+              <Row label="Overall progress" value={`${progress?.overall ?? 0}%`} />
+              <Row label="Exercise avg" value={`${progress?.averageScore ?? 0}%`} />
+            </dl>
+          </section>
+        </aside>
       </div>
     </div>
   );

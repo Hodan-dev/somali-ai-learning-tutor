@@ -2,7 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { AppShell } from './components/AppShell';
-import { Loading } from './components/ui';
+import { PageSkeleton } from './components/ui';
 
 const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
 const LoginPage = lazy(() => import('./pages/AuthPages').then((m) => ({ default: m.LoginPage })));
@@ -34,7 +34,7 @@ function Protected({ role }: { role?: 'ADMIN' | 'STUDENT' }) {
 }
 
 function Page({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<Loading label="Soo raraya bogga..." />}>{children}</Suspense>;
+  return <Suspense fallback={<PageSkeleton label="Loading page..." />}>{children}</Suspense>;
 }
 
 export default function App() {

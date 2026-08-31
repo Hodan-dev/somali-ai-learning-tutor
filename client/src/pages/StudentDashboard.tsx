@@ -169,7 +169,7 @@ export function StudentDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Loading />;
+  if (loading) return <Loading fullPage />;
   if (error) return <ErrorBox message={error} />;
   if (!data) return null;
 
