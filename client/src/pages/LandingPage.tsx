@@ -103,7 +103,7 @@ export function LandingPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-50 border-b border-blue-100 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <BrandLogo size="lg" subtitle="Baro · Learning Platform" />
+          <BrandLogo size="lg" subtitle="Academic · Digital Learning" />
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
             {NAV_LINKS.map((link) => (
@@ -178,7 +178,7 @@ export function LandingPage() {
           <div className="relative mx-auto flex max-w-6xl items-center px-4 py-14 sm:px-6 lg:py-20">
             <div className="max-w-xl lg:max-w-2xl">
               <p className="mb-4 inline-flex rounded-full border border-white/30 bg-white/15 px-4 py-1.5 text-sm font-semibold text-white backdrop-blur-sm">
-                Somali AI Learning Tutor
+                ArdeyTechHub
               </p>
               <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.5rem]">
                 Waxbarta aan barwaaqo gaarnee
@@ -232,7 +232,7 @@ export function LandingPage() {
               Our goal is simple: make learning easy for every Somali student
             </h2>
             <p className="mt-4 text-base leading-relaxed text-muted sm:text-lg">
-              Somali AI Learning Tutor helps students understand school subjects without confusion. We
+              ArdeyTechHub helps students understand school subjects without confusion. We
               combine structured lessons, practice exercises, and an AI tutor that speaks in clear Somali
               so you can learn at your own speed — at home, at school, or anywhere.
             </p>
@@ -367,7 +367,7 @@ export function LandingPage() {
               Testimonials
             </p>
             <h2 className="mt-2 font-display text-3xl font-bold text-ink">Students who use the platform</h2>
-            <p className="mt-3 text-muted">Real stories from learners who improved with Somali AI Tutor.</p>
+            <p className="mt-3 text-muted">Real stories from learners who improved with ArdeyTechHub.</p>
           </div>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2">
@@ -403,6 +403,37 @@ export function LandingPage() {
         </div>
       </section>
 
+      <section className="relative overflow-hidden bg-[#f5e6d3]">
+        <div className="pointer-events-none absolute -right-20 top-0 h-64 w-64 rounded-full bg-[#5eb8f0]/20 blur-3xl" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:gap-14">
+          <div>
+            <p className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-[#2d8fd4]">
+              Digital learning
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#1e3a5f] sm:text-4xl">
+              Isticmaal ArdeyTechHub si aan ula jaanqaadno dunida digital-ka ah
+            </h2>
+            <p className="mt-5 text-base leading-relaxed text-[#4a5568]">
+              Baro, ku celceli, weydii macallinka AI, oo la soco horumarkaaga — dhammaan hal
+              platform oo loogu talagalay ardayda Soomaaliyeed.
+            </p>
+            <Link
+              to="/register"
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#2d8fd4] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#2478b8]"
+            >
+              Bilow hadda <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="overflow-hidden rounded-[1.75rem] border-4 border-white shadow-[0_20px_50px_-20px_rgba(45,143,212,0.35)]">
+            <img
+              src="/hero-digital.jpg"
+              alt="Somali students with flags learning together"
+              className="aspect-[4/3] w-full object-cover"
+            />
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         <div className="rounded-[2rem] bg-gradient-to-r from-sea-dark to-sea px-6 py-10 text-white sm:px-10">
           <h2 className="font-display text-2xl font-bold sm:text-3xl">Ready to start learning?</h2>
@@ -431,9 +462,9 @@ export function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div className="sm:col-span-2">
-              <BrandLogo to="/" size="md" subtitle="Baro · Learning Platform" />
+              <BrandLogo to="/" size="md" subtitle="Academic · Digital Learning" />
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">
-                Somali AI Learning Tutor — a simple platform for students to learn, practice, ask AI, and
+                ArdeyTechHub — a simple academic platform for students to learn, practice, ask AI, and
                 track progress across five school subjects.
               </p>
             </div>
@@ -478,7 +509,7 @@ export function LandingPage() {
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-blue-100 pt-8 text-center text-sm text-muted sm:flex-row sm:text-left">
-            <p>© {new Date().getFullYear()} Somali AI Learning Tutor. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} ArdeyTechHub. All rights reserved.</p>
             <p className="font-medium text-sea">
               LEARN → PRACTICE → ASK → IMPROVE → TRACK → COMPLETE
             </p>

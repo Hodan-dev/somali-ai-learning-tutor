@@ -54,9 +54,9 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'Somali AI Learning Tutor',
-        short_name: 'SomaliTutor',
-        description: 'Baro Physics, Biology, English, Chemistry, Mathematics',
+        name: 'ArdeyTechHub',
+        short_name: 'ArdeyTechHub',
+        description: 'Academic digital learning for Somali students',
         theme_color: '#2563eb',
         background_color: '#f8fafc',
         display: 'standalone',

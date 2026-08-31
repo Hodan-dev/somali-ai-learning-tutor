@@ -53,7 +53,7 @@ const shellConfig: Record<
 > = {
   student: {
     home: '/app',
-    subtitle: 'Learning Platform',
+    subtitle: 'Academic Platform',
     roleLabel: 'Student',
     searchPlaceholder: 'Search courses, lessons...',
     links: studentLinks,

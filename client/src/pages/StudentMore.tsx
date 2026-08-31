@@ -373,7 +373,7 @@ export function TutorPage() {
   return (
     <div className="mx-auto flex h-[70vh] max-w-2xl flex-col rounded-3xl border border-blue-100 bg-white">
       <div className="border-b border-blue-50 px-5 py-4">
-        <h1 className="font-display text-xl font-bold">🤖 Somali AI Tutor</h1>
+        <h1 className="font-display text-xl font-bold">🤖 ArdeyTechHub AI Tutor</h1>
         <p className="text-sm text-muted">Weydii AI — hint, sharaxaad, iyo tusaalooyin.</p>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto p-4 text-sm">

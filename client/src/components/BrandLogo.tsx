@@ -26,36 +26,59 @@ export function BrandLogo({
       <div className={`${iconSize[size]} shrink-0`} aria-hidden>
         <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
           <defs>
-            <linearGradient id="logoGrad" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#38bdf8" />
-              <stop offset="1" stopColor="#0284c7" />
+            <linearGradient id="athBg" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#5eb8f0" />
+              <stop offset="1" stopColor="#2d8fd4" />
             </linearGradient>
           </defs>
-          <rect width="48" height="48" rx="14" fill="url(#logoGrad)" />
+          <rect width="48" height="48" rx="13" fill="url(#athBg)" />
           <path
-            d="M24 11L14 16.5V28c0 5.2 4.3 10 10 11 5.7-1 10-5.8 10-11V16.5L24 11Z"
+            d="M10 18.5L24 12l14 6.5v3L24 28 10 21.5v-3Z"
+            fill="#f5e6d3"
             stroke="white"
-            strokeWidth="2"
+            strokeWidth="1.2"
             strokeLinejoin="round"
-            fill="rgba(255,255,255,0.12)"
           />
-          <path d="M24 11v27" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity="0.9" />
-          <path d="M17 19.5h14M17 24h14M17 28.5h9" stroke="#bae6fd" strokeWidth="1.6" strokeLinecap="round" />
-          <circle cx="34" cy="14" r="5" fill="#7dd3fc" stroke="white" strokeWidth="1.5" />
-          <path d="M34 12v4M32 14h4" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M24 28v10" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+          <path
+            d="M17 32.5c0 2.5 3.1 4.5 7 4.5s7-2 7-4.5"
+            stroke="white"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M30 14.5l6-2.5 2 1.2-6 2.8-2-1.5Z"
+            fill="#f5e6d3"
+            stroke="white"
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+          <circle cx="35" cy="12" r="2.2" fill="white" />
+          <path d="M35 10.5v3M33.5 12h3" stroke="#2d8fd4" strokeWidth="0.9" strokeLinecap="round" />
+          <path
+            d="M14 22h6M14 25h4"
+            stroke="#2d8fd4"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            opacity="0.85"
+          />
         </svg>
       </div>
       {showText && (
         <div className="leading-tight">
           <div
-            className={`font-display text-sm font-bold sm:text-base ${
+            className={`font-display text-sm font-bold tracking-tight sm:text-base ${
               theme === 'dark' ? 'text-white' : 'text-ink'
             }`}
           >
-            Somali Tutor AI
+            ArdeyTechHub
           </div>
-          <div className={`text-[11px] font-medium ${theme === 'dark' ? 'text-sky-300' : 'text-sky-600'}`}>
-            {subtitle || 'Baro · Learning Platform'}
+          <div
+            className={`text-[10px] font-semibold uppercase tracking-wide sm:text-[11px] ${
+              theme === 'dark' ? 'text-sky-300' : 'text-sky-600'
+            }`}
+          >
+            {subtitle || 'Academic · Digital Learning'}
           </div>
         </div>
       )}
