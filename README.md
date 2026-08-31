@@ -14,23 +14,29 @@ A Somali-friendly educational web platform where students learn **Physics**, **B
 
 ## Quick start
 
-### Windows (Hodan laptop)
+### Windows (Hodan laptop — Desktop)
 
-Project folder:
+Project folder on your Desktop:
 
 ```text
-C:\Users\HODAN\Projects\somali-ai-learning-tutor
+C:\Users\HODAN\Desktop\somali-ai-learning-tutor
 ```
 
 **First time** — open **PowerShell** and run:
 
 ```powershell
-mkdir C:\Users\HODAN\Projects -Force
-cd C:\Users\HODAN\Projects
-git clone https://github.com/Hodan-dev/somali-ai-learning-tutor.git
-cd somali-ai-learning-tutor
-powershell -ExecutionPolicy Bypass -File scripts\setup-hodan-windows.ps1
+powershell -ExecutionPolicy Bypass -Command "git clone https://github.com/Hodan-dev/somali-ai-learning-tutor.git C:\Users\HODAN\Desktop\somali-ai-learning-tutor; cd C:\Users\HODAN\Desktop\somali-ai-learning-tutor; powershell -ExecutionPolicy Bypass -File scripts\setup-desktop-windows.ps1"
 ```
+
+Or step by step:
+
+```powershell
+git clone https://github.com/Hodan-dev/somali-ai-learning-tutor.git C:\Users\HODAN\Desktop\somali-ai-learning-tutor
+cd C:\Users\HODAN\Desktop\somali-ai-learning-tutor
+powershell -ExecutionPolicy Bypass -File scripts\setup-desktop-windows.ps1
+```
+
+**Alternative path** (`Projects` folder): use `scripts\setup-hodan-windows.ps1` instead.
 
 Then edit `server\.env` (MongoDB Atlas URI + Gemini key) and run:
 
