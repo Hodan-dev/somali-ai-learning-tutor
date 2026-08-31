@@ -1,7 +1,14 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
-import { db } from '../db.js';
+import {
+  ChatMessage,
+  ChatSession,
+  Course,
+  Lesson,
+  LessonChunk,
+  Module,
+} from '../models/index.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
 import { generateTutorReply, retrieveRelevantChunks } from '../services/ai.js';
 
@@ -19,29 +26,27 @@ aiRouter.post('/chat', authRequired, requireRole('STUDENT'), async (req, res) =>
 
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Fariin lama helin. Su\'aal waa inay ahaataa 1–2000 xaraf.' });
+    return res.status(400).json({ error: "Fariin lama helin. Su'aal waa inay ahaataa 1–2000 xaraf." });
   }
 
   try {
     let chatId = parsed.data.chatId;
     if (!chatId) {
       chatId = uuid();
-      db.prepare(
-        `INSERT INTO chat_sessions (id, student_id, course_id, lesson_id, exercise_id) VALUES (?, ?, ?, ?, ?)`
-      ).run(
-        chatId,
-        req.user!.id,
-        parsed.data.courseId || null,
-        parsed.data.lessonId || null,
-        parsed.data.exerciseId || null
-      );
+      await ChatSession.create({
+        _id: chatId,
+        student_id: req.user!.id,
+        course_id: parsed.data.courseId || undefined,
+        lesson_id: parsed.data.lessonId || undefined,
+        exercise_id: parsed.data.exerciseId || undefined,
+      });
     }
 
-    db.prepare(`INSERT INTO chat_messages (id, chat_id, sender, message) VALUES (?, ?, 'student', ?)`).run(
-      uuid(),
-      chatId,
-      parsed.data.message
-    );
+    await ChatMessage.create({
+      chat_id: chatId,
+      sender: 'student',
+      message: parsed.data.message,
+    });
 
     let lessonTitle: string | undefined;
     let courseTitle: string | undefined;
@@ -49,30 +54,21 @@ aiRouter.post('/chat', authRequired, requireRole('STUDENT'), async (req, res) =>
     let contextChunks: string[] = [];
 
     if (parsed.data.lessonId) {
-      const lesson = db
-        .prepare(
-          `SELECT l.title, l.content, l.description, l.pdf_url, c.title as course_title
-           FROM lessons l JOIN modules m ON m.id = l.module_id JOIN courses c ON c.id = m.course_id
-           WHERE l.id = ?`
-        )
-        .get(parsed.data.lessonId) as
-        | { title: string; content: string; description: string; pdf_url: string | null; course_title: string }
-        | undefined;
-
+      const lesson = await Lesson.findById(parsed.data.lessonId).lean();
       if (lesson) {
+        const mod = await Module.findById(lesson.module_id).lean();
+        const course = mod ? await Course.findById(mod.course_id).lean() : null;
         lessonTitle = lesson.title;
-        courseTitle = lesson.course_title;
-        lessonContent = lesson.pdf_url
-          ? lesson.description || lesson.title
-          : lesson.content;
+        courseTitle = course?.title;
+        lessonContent = lesson.pdf_url ? lesson.description || lesson.title : lesson.content;
       }
 
       if (!lesson?.pdf_url) {
-        const chunks = db
-          .prepare(`SELECT id, content FROM lesson_chunks WHERE lesson_id = ? ORDER BY chunk_index`)
-          .all(parsed.data.lessonId) as { id: string; content: string }[];
-
-        contextChunks = retrieveRelevantChunks(chunks, parsed.data.message);
+        const chunks = await LessonChunk.find({ lesson_id: parsed.data.lessonId }).sort({ chunk_index: 1 }).lean();
+        contextChunks = retrieveRelevantChunks(
+          chunks.map((c) => ({ id: c._id, content: c.content })),
+          parsed.data.message
+        );
       }
     }
 
@@ -85,11 +81,11 @@ aiRouter.post('/chat', authRequired, requireRole('STUDENT'), async (req, res) =>
       exerciseHint: parsed.data.exerciseHint,
     });
 
-    db.prepare(`INSERT INTO chat_messages (id, chat_id, sender, message) VALUES (?, ?, 'ai', ?)`).run(
-      uuid(),
-      chatId,
-      reply
-    );
+    await ChatMessage.create({
+      chat_id: chatId,
+      sender: 'ai',
+      message: reply,
+    });
 
     return res.json({ chatId, reply });
   } catch (err) {
@@ -100,47 +96,39 @@ aiRouter.post('/chat', authRequired, requireRole('STUDENT'), async (req, res) =>
   }
 });
 
-aiRouter.get('/history', authRequired, requireRole('STUDENT'), (req, res) => {
+aiRouter.get('/history', authRequired, requireRole('STUDENT'), async (req, res) => {
   try {
     const lessonId = req.query.lessonId as string | undefined;
-    let session: { id: string } | undefined;
+    const filter: Record<string, string> = { student_id: req.user!.id };
+    if (lessonId) filter.lesson_id = lessonId;
 
-    if (lessonId) {
-      session = db
-        .prepare(
-          `SELECT id FROM chat_sessions WHERE student_id = ? AND lesson_id = ? ORDER BY created_at DESC LIMIT 1`
-        )
-        .get(req.user!.id, lessonId) as { id: string } | undefined;
-    } else {
-      session = db
-        .prepare(`SELECT id FROM chat_sessions WHERE student_id = ? ORDER BY created_at DESC LIMIT 1`)
-        .get(req.user!.id) as { id: string } | undefined;
-    }
-
+    const session = await ChatSession.findOne(filter).sort({ created_at: -1 }).lean();
     if (!session) return res.json({ chatId: null, messages: [] });
 
-    const messages = db
-      .prepare(`SELECT sender, message, created_at FROM chat_messages WHERE chat_id = ? ORDER BY created_at`)
-      .all(session.id);
-
-    return res.json({ chatId: session.id, messages });
+    const messages = await ChatMessage.find({ chat_id: session._id }).sort({ created_at: 1 }).lean();
+    return res.json({
+      chatId: session._id,
+      messages: messages.map((m) => ({
+        sender: m.sender,
+        message: m.message,
+        created_at: m.created_at instanceof Date ? m.created_at.toISOString() : m.created_at,
+      })),
+    });
   } catch (err) {
     console.error('AI history error:', err);
     return res.status(500).json({ error: 'Taariikhda chat-ka lama soo dejin karo.' });
   }
 });
 
-aiRouter.delete('/history', authRequired, requireRole('STUDENT'), (req, res) => {
+aiRouter.delete('/history', authRequired, requireRole('STUDENT'), async (req, res) => {
   const chatId = req.query.chatId as string | undefined;
   if (!chatId) return res.status(400).json({ error: 'chatId required' });
 
   try {
-    const session = db
-      .prepare(`SELECT id FROM chat_sessions WHERE id = ? AND student_id = ?`)
-      .get(chatId, req.user!.id);
+    const session = await ChatSession.findOne({ _id: chatId, student_id: req.user!.id });
     if (!session) return res.status(404).json({ error: 'Chat lama helin.' });
 
-    db.prepare(`DELETE FROM chat_messages WHERE chat_id = ?`).run(chatId);
+    await ChatMessage.deleteMany({ chat_id: chatId });
     return res.json({ ok: true });
   } catch (err) {
     console.error('AI history delete error:', err);

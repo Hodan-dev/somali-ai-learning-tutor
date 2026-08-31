@@ -5,9 +5,22 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
-import { db } from '../db.js';
+import {
+  ActivityLog,
+  Course,
+  CourseCompletion,
+  Exercise,
+  ExerciseAttempt,
+  Lesson,
+  LessonChunk,
+  LessonProgress,
+  Module,
+  Question,
+  mapId,
+} from '../models/index.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
 import { chunkText } from '../services/ai.js';
+import { avgExerciseScoreForCourse, lessonIdsForCourse, nextSortOrder } from '../helpers/stats.js';
 
 function pdfLessonPlaceholder(title: string, description?: string) {
   return description?.trim() || `Read the PDF lesson: ${title}`;
@@ -35,163 +48,162 @@ const upload = multer({
 
 export const lessonsRouter = Router();
 
-lessonsRouter.get('/', authRequired, requireRole('ADMIN'), (_req, res) => {
-  const lessons = db
-    .prepare(
-      `SELECT l.id, l.title, l.description, l.pdf_url, l.status, l.created_at, m.title as module_title, c.title as course_title, c.category
-       FROM lessons l
-       JOIN modules m ON m.id = l.module_id
-       JOIN courses c ON c.id = m.course_id
-       ORDER BY l.created_at DESC`
-    )
-    .all();
-  res.json({ lessons });
+lessonsRouter.get('/', authRequired, requireRole('ADMIN'), async (_req, res) => {
+  const lessons = await Lesson.find().sort({ created_at: -1 }).lean();
+  const enriched = await Promise.all(
+    lessons.map(async (l) => {
+      const mod = await Module.findById(l.module_id).lean();
+      const course = mod ? await Course.findById(mod.course_id).lean() : null;
+      return {
+        id: l._id,
+        title: l.title,
+        description: l.description,
+        pdf_url: l.pdf_url,
+        status: l.status,
+        created_at: l.created_at instanceof Date ? l.created_at.toISOString() : l.created_at,
+        module_title: mod?.title,
+        course_title: course?.title,
+        category: course?.category,
+      };
+    })
+  );
+  res.json({ lessons: enriched });
 });
 
-lessonsRouter.get('/:id', authRequired, (req, res) => {
-  const lesson = db
-    .prepare(
-      `SELECT l.*, m.course_id, m.title as module_title, c.title as course_title, c.category
-       FROM lessons l
-       JOIN modules m ON m.id = l.module_id
-       JOIN courses c ON c.id = m.course_id
-       WHERE l.id = ?`
-    )
-    .get(req.params.id) as Record<string, unknown> | undefined;
+lessonsRouter.get('/:id', authRequired, async (req, res) => {
+  const lessonDoc = await Lesson.findById(req.params.id).lean();
+  if (!lessonDoc) return res.status(404).json({ error: 'Casharka lama helin.' });
 
-  if (!lesson) return res.status(404).json({ error: 'Casharka lama helin.' });
+  const mod = await Module.findById(lessonDoc.module_id).lean();
+  if (!mod) return res.status(404).json({ error: 'Casharka lama helin.' });
+  const course = await Course.findById(mod.course_id).lean();
+
+  const lesson: Record<string, unknown> = {
+    ...mapId(lessonDoc),
+    course_id: mod.course_id,
+    module_title: mod.title,
+    course_title: course?.title,
+    category: course?.category,
+  };
 
   if (req.user!.role === 'STUDENT') {
-    const existing = db
-      .prepare(`SELECT id FROM lesson_progress WHERE student_id = ? AND lesson_id = ?`)
-      .get(req.user!.id, req.params.id);
+    const existing = await LessonProgress.findOne({ student_id: req.user!.id, lesson_id: req.params.id });
     if (existing) {
-      db.prepare(`UPDATE lesson_progress SET last_accessed = datetime('now') WHERE student_id = ? AND lesson_id = ?`).run(
-        req.user!.id,
-        req.params.id
-      );
+      existing.last_accessed = new Date();
+      await existing.save();
     } else {
-      db.prepare(
-        `INSERT INTO lesson_progress (id, student_id, lesson_id, course_id, completed) VALUES (?, ?, ?, ?, 0)`
-      ).run(uuid(), req.user!.id, req.params.id, lesson.course_id);
+      await LessonProgress.create({
+        student_id: req.user!.id,
+        lesson_id: req.params.id,
+        course_id: mod.course_id,
+        completed: false,
+      });
     }
   }
 
-  const exercise = db.prepare(`SELECT id, title, description FROM exercises WHERE lesson_id = ?`).get(req.params.id);
+  const exercise = await Exercise.findOne({ lesson_id: req.params.id }).select('_id title description').lean();
 
-  // curriculum sidebar
-  const modules = db
-    .prepare(`SELECT id, title, sort_order FROM modules WHERE course_id = ? ORDER BY sort_order`)
-    .all(lesson.course_id) as Array<{ id: string; title: string; sort_order: number }>;
-
-  const moduleLessons = modules.map((m) => ({
-    module: m,
-    lessons: db
-      .prepare(`SELECT id, title, sort_order FROM lessons WHERE module_id = ? AND status = 'published' ORDER BY sort_order`)
-      .all(m.id) as Array<{ id: string; title: string; sort_order: number }>,
-  }));
+  const modules = await Module.find({ course_id: mod.course_id }).sort({ sort_order: 1 }).lean();
+  const moduleLessons = await Promise.all(
+    modules.map(async (m) => ({
+      module: m,
+      lessons: await Lesson.find({ module_id: m._id, status: 'published' }).sort({ sort_order: 1 }).lean(),
+    }))
+  );
 
   const progressByLesson = new Map<string, boolean>();
   if (req.user!.role === 'STUDENT') {
-    const lessonIds = moduleLessons.flatMap(({ lessons }) => lessons.map((l) => l.id));
+    const lessonIds = moduleLessons.flatMap(({ lessons }) => lessons.map((l) => l._id));
     if (lessonIds.length) {
-      const placeholders = lessonIds.map(() => '?').join(',');
-      const rows = db
-        .prepare(
-          `SELECT lesson_id, completed FROM lesson_progress WHERE student_id = ? AND lesson_id IN (${placeholders})`
-        )
-        .all(req.user!.id, ...lessonIds) as Array<{ lesson_id: string; completed: number }>;
+      const rows = await LessonProgress.find({
+        student_id: req.user!.id,
+        lesson_id: { $in: lessonIds },
+      }).lean();
       for (const row of rows) progressByLesson.set(row.lesson_id, !!row.completed);
     }
   }
 
   const curriculum = moduleLessons.map(({ module: m, lessons }) => ({
-    ...m,
+    ...mapId(m),
     lessons: lessons.map((l) => ({
-      ...l,
-      completed: progressByLesson.get(l.id) ?? false,
-      current: l.id === req.params.id,
+      ...mapId(l),
+      completed: progressByLesson.get(l._id) ?? false,
+      current: l._id === req.params.id,
     })),
   }));
 
   let completed = false;
   if (req.user!.role === 'STUDENT') {
-    const p = db
-      .prepare(`SELECT completed FROM lesson_progress WHERE student_id = ? AND lesson_id = ?`)
-      .get(req.user!.id, req.params.id) as { completed: number } | undefined;
+    const p = await LessonProgress.findOne({ student_id: req.user!.id, lesson_id: req.params.id }).lean();
     completed = !!p?.completed;
   }
 
-  // PDF lessons: serve the file in the viewer — do not ship extracted text to the client.
   if (lesson.pdf_url) {
     lesson.content = pdfLessonPlaceholder(String(lesson.title), String(lesson.description || ''));
   }
 
-  res.json({ lesson: { ...lesson, completed, exercise }, curriculum });
+  if (lesson.created_at instanceof Date) lesson.created_at = lesson.created_at.toISOString();
+
+  res.json({
+    lesson: {
+      ...lesson,
+      completed,
+      exercise: exercise ? { id: exercise._id, title: exercise.title, description: exercise.description } : null,
+    },
+    curriculum,
+  });
 });
 
-lessonsRouter.post('/:id/complete', authRequired, requireRole('STUDENT'), (req, res) => {
-  const lesson = db
-    .prepare(
-      `SELECT l.id, m.course_id, l.title FROM lessons l JOIN modules m ON m.id = l.module_id WHERE l.id = ?`
-    )
-    .get(req.params.id) as { id: string; course_id: string; title: string } | undefined;
-  if (!lesson) return res.status(404).json({ error: 'Casharka lama helin.' });
+lessonsRouter.post('/:id/complete', authRequired, requireRole('STUDENT'), async (req, res) => {
+  const lessonDoc = await Lesson.findById(req.params.id).lean();
+  if (!lessonDoc) return res.status(404).json({ error: 'Casharka lama helin.' });
+  const mod = await Module.findById(lessonDoc.module_id).lean();
+  if (!mod) return res.status(404).json({ error: 'Casharka lama helin.' });
 
-  const existing = db
-    .prepare(`SELECT id FROM lesson_progress WHERE student_id = ? AND lesson_id = ?`)
-    .get(req.user!.id, req.params.id);
-
+  const existing = await LessonProgress.findOne({ student_id: req.user!.id, lesson_id: req.params.id });
   if (existing) {
-    db.prepare(
-      `UPDATE lesson_progress SET completed = 1, completed_at = datetime('now'), last_accessed = datetime('now') WHERE student_id = ? AND lesson_id = ?`
-    ).run(req.user!.id, req.params.id);
+    existing.completed = true;
+    existing.completed_at = new Date();
+    existing.last_accessed = new Date();
+    await existing.save();
   } else {
-    db.prepare(
-      `INSERT INTO lesson_progress (id, student_id, lesson_id, course_id, completed, completed_at) VALUES (?, ?, ?, ?, 1, datetime('now'))`
-    ).run(uuid(), req.user!.id, req.params.id, lesson.course_id);
+    await LessonProgress.create({
+      student_id: req.user!.id,
+      lesson_id: req.params.id,
+      course_id: mod.course_id,
+      completed: true,
+      completed_at: new Date(),
+    });
   }
 
-  db.prepare(`INSERT INTO activity_log (id, student_id, action, detail) VALUES (?, ?, ?, ?)`).run(
-    uuid(),
-    req.user!.id,
-    'lesson_completed',
-    `${lesson.title} — La dhammeeyay`
-  );
+  await ActivityLog.create({
+    student_id: req.user!.id,
+    action: 'lesson_completed',
+    detail: `${lessonDoc.title} — La dhammeeyay`,
+  });
 
-  // Check course completion
-  const total = db
-    .prepare(
-      `SELECT COUNT(*) as c FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = ? AND l.status = 'published'`
-    )
-    .get(lesson.course_id) as { c: number };
-  const done = db
-    .prepare(`SELECT COUNT(*) as c FROM lesson_progress WHERE student_id = ? AND course_id = ? AND completed = 1`)
-    .get(req.user!.id, lesson.course_id) as { c: number };
+  const total = (await lessonIdsForCourse(mod.course_id, true)).length;
+  const done = await LessonProgress.countDocuments({
+    student_id: req.user!.id,
+    course_id: mod.course_id,
+    completed: true,
+  });
 
   let courseCompleted = false;
-  if (total.c > 0 && done.c >= total.c) {
-    const avg = db
-      .prepare(
-        `SELECT AVG(score) as avg FROM exercise_attempts ea
-         JOIN exercises e ON e.id = ea.exercise_id
-         JOIN lessons l ON l.id = e.lesson_id
-         JOIN modules m ON m.id = l.module_id
-         WHERE ea.student_id = ? AND m.course_id = ? AND ea.is_correct = 1`
-      )
-      .get(req.user!.id, lesson.course_id) as { avg: number | null };
-
-    db.prepare(
-      `INSERT INTO course_completions (id, student_id, course_id, final_score) VALUES (?, ?, ?, ?)
-       ON CONFLICT(student_id, course_id) DO UPDATE SET final_score = excluded.final_score, completed_at = datetime('now')`
-    ).run(uuid(), req.user!.id, lesson.course_id, avg.avg ?? 100);
+  if (total > 0 && done >= total) {
+    const avg = await avgExerciseScoreForCourse(req.user!.id, mod.course_id);
+    await CourseCompletion.findOneAndUpdate(
+      { student_id: req.user!.id, course_id: mod.course_id },
+      { student_id: req.user!.id, course_id: mod.course_id, final_score: avg, completed_at: new Date() },
+      { upsert: true, new: true }
+    );
     courseCompleted = true;
   }
 
-  res.json({ ok: true, courseCompleted, progress: total.c ? Math.round((done.c / total.c) * 100) : 0 });
+  res.json({ ok: true, courseCompleted, progress: total ? Math.round((done / total) * 100) : 0 });
 });
 
-lessonsRouter.post('/', authRequired, requireRole('ADMIN'), (req, res) => {
+lessonsRouter.post('/', authRequired, requireRole('ADMIN'), async (req, res) => {
   const schema = z.object({
     moduleId: z.string(),
     title: z.string().min(2),
@@ -201,18 +213,26 @@ lessonsRouter.post('/', authRequired, requireRole('ADMIN'), (req, res) => {
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Lesson data ma saxna.' });
 
-  const max = db
-    .prepare(`SELECT COALESCE(MAX(sort_order), -1) as m FROM lessons WHERE module_id = ?`)
-    .get(parsed.data.moduleId) as { m: number };
+  const sortOrder = await nextSortOrder(Lesson, { module_id: parsed.data.moduleId });
   const id = uuid();
-  db.prepare(
-    `INSERT INTO lessons (id, module_id, title, description, content, sort_order, status, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, 'published', ?)`
-  ).run(id, parsed.data.moduleId, parsed.data.title, parsed.data.description || '', parsed.data.content, max.m + 1, req.user!.id);
+  await Lesson.create({
+    _id: id,
+    module_id: parsed.data.moduleId,
+    title: parsed.data.title,
+    description: parsed.data.description || '',
+    content: parsed.data.content,
+    sort_order: sortOrder,
+    status: 'published',
+    uploaded_by: req.user!.id,
+  });
 
-  const insertChunk = db.prepare(`INSERT INTO lesson_chunks (id, lesson_id, content, chunk_index) VALUES (?, ?, ?, ?)`);
-  for (const ch of chunkText(parsed.data.content)) {
-    insertChunk.run(ch.id, id, ch.content, ch.chunk_index);
-  }
+  await LessonChunk.insertMany(
+    chunkText(parsed.data.content).map((ch) => ({
+      lesson_id: id,
+      content: ch.content,
+      chunk_index: ch.chunk_index,
+    }))
+  );
 
   res.status(201).json({ lesson: { id, title: parsed.data.title } });
 });
@@ -246,34 +266,22 @@ lessonsRouter.post(
       }
 
       const content = pdfLessonPlaceholder(parsed.data.title, parsed.data.description);
-
-      const max = db
-        .prepare(`SELECT COALESCE(MAX(sort_order), -1) as m FROM lessons WHERE module_id = ?`)
-        .get(parsed.data.moduleId) as { m: number };
-
+      const sortOrder = await nextSortOrder(Lesson, { module_id: parsed.data.moduleId });
       const id = uuid();
       const pdfUrl = `/uploads/${req.file.filename}`;
-      db.prepare(
-        `INSERT INTO lessons (id, module_id, title, description, content, pdf_url, sort_order, status, uploaded_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'published', ?)`
-      ).run(
-        id,
-        parsed.data.moduleId,
-        parsed.data.title,
-        parsed.data.description || 'PDF lesson',
+      await Lesson.create({
+        _id: id,
+        module_id: parsed.data.moduleId,
+        title: parsed.data.title,
+        description: parsed.data.description || 'PDF lesson',
         content,
-        pdfUrl,
-        max.m + 1,
-        req.user!.id
-      );
-
-      res.status(201).json({
-        lesson: {
-          id,
-          title: parsed.data.title,
-          pdfUrl,
-        },
+        pdf_url: pdfUrl,
+        sort_order: sortOrder,
+        status: 'published',
+        uploaded_by: req.user!.id,
       });
+
+      res.status(201).json({ lesson: { id, title: parsed.data.title, pdfUrl } });
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'PDF processing failed.' });
@@ -281,7 +289,7 @@ lessonsRouter.post(
   }
 );
 
-lessonsRouter.put('/:id', authRequired, requireRole('ADMIN'), (req, res) => {
+lessonsRouter.put('/:id', authRequired, requireRole('ADMIN'), async (req, res) => {
   const schema = z.object({
     title: z.string().min(2).optional(),
     description: z.string().optional(),
@@ -290,30 +298,36 @@ lessonsRouter.put('/:id', authRequired, requireRole('ADMIN'), (req, res) => {
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Update ma saxna.' });
-  const existing = db.prepare(`SELECT * FROM lessons WHERE id = ?`).get(req.params.id) as Record<string, string> | undefined;
+  const existing = await Lesson.findById(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Casharka lama helin.' });
 
-  const content = parsed.data.content ?? existing.content;
-  db.prepare(`UPDATE lessons SET title = ?, description = ?, content = ?, status = ? WHERE id = ?`).run(
-    parsed.data.title ?? existing.title,
-    parsed.data.description ?? existing.description,
-    content,
-    parsed.data.status ?? existing.status,
-    req.params.id
-  );
+  if (parsed.data.title) existing.title = parsed.data.title;
+  if (parsed.data.description !== undefined) existing.description = parsed.data.description;
+  if (parsed.data.content) existing.content = parsed.data.content;
+  if (parsed.data.status) existing.status = parsed.data.status;
+  await existing.save();
 
   if (parsed.data.content) {
-    db.prepare(`DELETE FROM lesson_chunks WHERE lesson_id = ?`).run(req.params.id);
-    const insertChunk = db.prepare(`INSERT INTO lesson_chunks (id, lesson_id, content, chunk_index) VALUES (?, ?, ?, ?)`);
-    for (const ch of chunkText(content)) {
-      insertChunk.run(ch.id, req.params.id, ch.content, ch.chunk_index);
-    }
+    await LessonChunk.deleteMany({ lesson_id: req.params.id });
+    await LessonChunk.insertMany(
+      chunkText(parsed.data.content).map((ch) => ({
+        lesson_id: req.params.id,
+        content: ch.content,
+        chunk_index: ch.chunk_index,
+      }))
+    );
   }
 
   res.json({ ok: true });
 });
 
-lessonsRouter.delete('/:id', authRequired, requireRole('ADMIN'), (req, res) => {
-  db.prepare(`DELETE FROM lessons WHERE id = ?`).run(req.params.id);
+lessonsRouter.delete('/:id', authRequired, requireRole('ADMIN'), async (req, res) => {
+  const exerciseIds = await Exercise.find({ lesson_id: req.params.id }).distinct('_id');
+  await LessonChunk.deleteMany({ lesson_id: req.params.id });
+  await LessonProgress.deleteMany({ lesson_id: req.params.id });
+  await Question.deleteMany({ exercise_id: { $in: exerciseIds } });
+  await ExerciseAttempt.deleteMany({ exercise_id: { $in: exerciseIds } });
+  await Exercise.deleteMany({ lesson_id: req.params.id });
+  await Lesson.deleteOne({ _id: req.params.id });
   res.json({ ok: true });
 });

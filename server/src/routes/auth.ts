@@ -2,12 +2,12 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { v4 as uuid } from 'uuid';
-import { db } from '../db.js';
+import { Course, Enrollment, User, mapId } from '../models/index.js';
 import { authRequired, signToken } from '../middleware/auth.js';
 
 export const authRouter = Router();
 
-authRouter.post('/register', (req, res) => {
+authRouter.post('/register', async (req, res) => {
   const schema = z.object({
     name: z.string().min(2),
     email: z.string().email(),
@@ -18,26 +18,31 @@ authRouter.post('/register', (req, res) => {
     return res.status(400).json({ error: 'Macluumaadka ma saxna. Hubi magaca, email, iyo password (ugu yaraan 6).' });
   }
   const { name, email, password } = parsed.data;
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase());
+  const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) {
     return res.status(409).json({ error: 'Email-kan horey ayaa loo isticmaalay.' });
   }
   const id = uuid();
-  db.prepare(
-    `INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, 'STUDENT')`
-  ).run(id, name, email.toLowerCase(), bcrypt.hashSync(password, 10));
+  await User.create({
+    _id: id,
+    name,
+    email: email.toLowerCase(),
+    password: bcrypt.hashSync(password, 10),
+    role: 'STUDENT',
+  });
 
-  // Auto-enroll in all courses
-  const courses = db.prepare('SELECT id FROM courses').all() as { id: string }[];
-  const enroll = db.prepare(`INSERT INTO enrollments (id, student_id, course_id) VALUES (?, ?, ?)`);
-  for (const c of courses) enroll.run(uuid(), id, c.id);
+  const courses = await Course.find().select('_id').lean();
+  if (courses.length) {
+    await Enrollment.insertMany(
+      courses.map((c) => ({ student_id: id, course_id: c._id }))
+    );
+  }
 
   const user = { id, name, email: email.toLowerCase(), role: 'STUDENT' as const };
-  const token = signToken(user);
-  res.status(201).json({ token, user });
+  res.status(201).json({ token: signToken(user), user });
 });
 
-authRouter.post('/login', (req, res) => {
+authRouter.post('/login', async (req, res) => {
   const schema = z.object({
     email: z.string().email(),
     password: z.string().min(1),
@@ -46,16 +51,11 @@ authRouter.post('/login', (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: 'Email iyo password ayaa loo baahan yahay.' });
   }
-  const row = db
-    .prepare('SELECT id, name, email, password, role FROM users WHERE email = ?')
-    .get(parsed.data.email.toLowerCase()) as
-    | { id: string; name: string; email: string; password: string; role: 'ADMIN' | 'STUDENT' }
-    | undefined;
-
+  const row = await User.findOne({ email: parsed.data.email.toLowerCase() }).lean();
   if (!row || !bcrypt.compareSync(parsed.data.password, row.password)) {
     return res.status(401).json({ error: 'Email ama password waa khalad.' });
   }
-  const user = { id: row.id, name: row.name, email: row.email, role: row.role };
+  const user = { id: row._id, name: row.name, email: row.email, role: row.role as 'ADMIN' | 'STUDENT' };
   res.json({ token: signToken(user), user });
 });
 
@@ -63,9 +63,7 @@ authRouter.post('/logout', authRequired, (_req, res) => {
   res.json({ ok: true });
 });
 
-authRouter.get('/me', authRequired, (req, res) => {
-  const row = db
-    .prepare('SELECT id, name, email, role, created_at FROM users WHERE id = ?')
-    .get(req.user!.id);
-  res.json({ user: row });
+authRouter.get('/me', authRequired, async (req, res) => {
+  const row = await User.findById(req.user!.id).lean();
+  res.json({ user: row ? mapId(row) : null });
 });

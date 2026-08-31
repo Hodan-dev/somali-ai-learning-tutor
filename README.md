@@ -8,7 +8,7 @@ A Somali-friendly educational web platform where students learn **Physics**, **B
 
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS
 - **Backend:** Node.js + Express
-- **Database:** SQLite (Better SQLite3)
+- **Database:** MongoDB (Mongoose)
 - **Auth:** JWT + bcrypt (roles: `ADMIN`, `STUDENT`)
 - **AI:** Google AI Studio (Gemini) via `@google/genai`, with a built-in Somali tutor fallback
 
@@ -74,7 +74,7 @@ Each course includes modules, lessons (with Somali explanations), and exercises.
 ### Admin
 - Dashboard stats
 - Create courses & modules
-- Upload PDF lessons (text extraction for AI context)
+- Upload PDF lessons (embedded viewer)
 - Create text lessons & exercises
 - View students and per-student progress
 
@@ -105,12 +105,14 @@ JWT_SECRET=change-me
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-3.6-flash
 UPLOAD_DIR=uploads
-DB_PATH=data/tutor.db
+MONGODB_URI=mongodb://127.0.0.1:27017/somali-tutor
 ```
+
+If `MONGODB_URI` is not set, the server uses an **in-memory MongoDB** for local development (data resets on restart). For production, point `MONGODB_URI` at your MongoDB instance or [MongoDB Atlas](https://www.mongodb.com/atlas).
 
 ## Project layout
 
 ```text
 client/   React app (port 3850, proxies /api)
-server/   Express API + SQLite + uploads
+server/   Express API + MongoDB + uploads
 ```

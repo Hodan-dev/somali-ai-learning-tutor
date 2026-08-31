@@ -4,6 +4,7 @@ import cors from 'cors';
 import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { connectDb } from './db.js';
 import { seedIfEmpty, syncContentCopy } from './seed.js';
 import { authRouter } from './routes/auth.js';
 import { coursesRouter } from './routes/courses.js';
@@ -13,15 +14,18 @@ import { progressRouter } from './routes/progress.js';
 import { aiRouter } from './routes/ai.js';
 import { adminRouter } from './routes/admin.js';
 import { authRequired } from './middleware/auth.js';
-import { db } from './db.js';
+import {
+  CourseCompletion,
+  Enrollment,
+  LessonProgress,
+  User,
+  toPlain,
+} from './models/index.js';
 import { getAiProviderStatus } from './services/ai.js';
 import { attachClientCache } from './middleware/staticCache.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3847);
-
-seedIfEmpty();
-syncContentCopy();
 
 const app = express();
 app.use(compression());
@@ -50,44 +54,50 @@ app.use('/api/progress', progressRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/admin', adminRouter);
 
-app.get('/api/profile', authRequired, (req, res) => {
-  const user = db
-    .prepare(`SELECT id, name, email, role, created_at FROM users WHERE id = ?`)
-    .get(req.user!.id) as { id: string; name: string; email: string; role: string; created_at: string };
+app.get('/api/profile', authRequired, async (req, res) => {
+  const user = await User.findById(req.user!.id).lean();
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+
+  const userOut = toPlain(user);
 
   if (user.role === 'STUDENT') {
-    const enrolled = db
-      .prepare(
-        `SELECT COUNT(*) as c FROM enrollments WHERE student_id = ?`
-      )
-      .get(user.id) as { c: number };
-    const completed = db
-      .prepare(`SELECT COUNT(*) as c FROM course_completions WHERE student_id = ?`)
-      .get(user.id) as { c: number };
-    const lessons = db
-      .prepare(`SELECT COUNT(*) as c FROM lesson_progress WHERE student_id = ? AND completed = 1`)
-      .get(user.id) as { c: number };
+    const [enrolled, completed, lessons] = await Promise.all([
+      Enrollment.countDocuments({ student_id: user.id }),
+      CourseCompletion.countDocuments({ student_id: user.id }),
+      LessonProgress.countDocuments({ student_id: user.id, completed: true }),
+    ]);
     return res.json({
-      user,
+      user: userOut,
       profile: {
-        enrolledCourses: enrolled.c,
-        completedCourses: completed.c,
-        lessonsCompleted: lessons.c,
-        joinedAt: user.created_at,
+        enrolledCourses: enrolled,
+        completedCourses: completed,
+        lessonsCompleted: lessons,
+        joinedAt: userOut.created_at,
       },
     });
   }
 
-  res.json({ user, profile: { joinedAt: user.created_at } });
+  res.json({ user: userOut, profile: { joinedAt: userOut.created_at } });
 });
 
 const servingClient = attachClientCache(app);
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Somali AI Tutor API running on http://0.0.0.0:${PORT}`);
-  if (servingClient) {
-    console.log(`Serving cached production frontend from client/dist on port ${PORT}`);
-  } else {
-    console.log('Dev mode: run client with npm run dev:client (Vite on port 3850)');
-  }
+async function start() {
+  await connectDb();
+  await seedIfEmpty();
+  await syncContentCopy();
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Somali AI Tutor API running on http://0.0.0.0:${PORT}`);
+    if (servingClient) {
+      console.log(`Serving cached production frontend from client/dist on port ${PORT}`);
+    } else {
+      console.log('Dev mode: run client with npm run dev:client (Vite on port 3850)');
+    }
+  });
+}
+
+start().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });

@@ -1,83 +1,82 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
-import { db } from '../db.js';
+import {
+  ActivityLog,
+  Course,
+  Exercise,
+  ExerciseAttempt,
+  Lesson,
+  Module,
+  Question,
+  mapId,
+} from '../models/index.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
 
 export const exercisesRouter = Router();
 
-exercisesRouter.get('/', authRequired, requireRole('ADMIN'), (_req, res) => {
-  const exercises = db
-    .prepare(
-      `SELECT e.id, e.title, e.description, l.title as lesson_title, c.title as course_title,
-        (SELECT COUNT(*) FROM questions q WHERE q.exercise_id = e.id) as question_count
-       FROM exercises e
-       JOIN lessons l ON l.id = e.lesson_id
-       JOIN modules m ON m.id = l.module_id
-       JOIN courses c ON c.id = m.course_id
-       ORDER BY e.title`
-    )
-    .all();
-  res.json({ exercises });
+exercisesRouter.get('/', authRequired, requireRole('ADMIN'), async (_req, res) => {
+  const exercises = await Exercise.find().sort({ title: 1 }).lean();
+  const enriched = await Promise.all(
+    exercises.map(async (e) => {
+      const lesson = await Lesson.findById(e.lesson_id).lean();
+      const mod = lesson ? await Module.findById(lesson.module_id).lean() : null;
+      const course = mod ? await Course.findById(mod.course_id).lean() : null;
+      const question_count = await Question.countDocuments({ exercise_id: e._id });
+      return {
+        id: e._id,
+        title: e.title,
+        description: e.description,
+        lesson_title: lesson?.title,
+        course_title: course?.title,
+        question_count,
+      };
+    })
+  );
+  res.json({ exercises: enriched });
 });
 
-exercisesRouter.get('/lesson/:lessonId', authRequired, (req, res) => {
-  const exercise = db
-    .prepare(`SELECT id, lesson_id, title, description FROM exercises WHERE lesson_id = ?`)
-    .get(req.params.lessonId) as { id: string; lesson_id: string; title: string; description: string } | undefined;
-
+exercisesRouter.get('/lesson/:lessonId', authRequired, async (req, res) => {
+  const exercise = await Exercise.findOne({ lesson_id: req.params.lessonId }).lean();
   if (!exercise) return res.status(404).json({ error: 'Layli lama helin casharkan.' });
 
-  const questions = db
-    .prepare(
-      `SELECT id, question, type, options, explanation, hint, points, sort_order FROM questions WHERE exercise_id = ? ORDER BY sort_order`
-    )
-    .all(exercise.id) as Array<Record<string, unknown>>;
-
-  // Don't send correct answers to students until submitted — strip them
+  const questions = await Question.find({ exercise_id: exercise._id }).sort({ sort_order: 1 }).lean();
   const safe = questions.map((q) => ({
-    id: q.id,
+    id: q._id,
     question: q.question,
     type: q.type,
-    options: q.options ? JSON.parse(q.options as string) : null,
+    options: q.options?.length ? q.options : null,
     points: q.points,
     hint: q.hint,
   }));
 
-  res.json({ exercise: { ...exercise, questions: safe } });
+  res.json({ exercise: { ...mapId(exercise), questions: safe } });
 });
 
-exercisesRouter.get('/:id', authRequired, (req, res) => {
-  const exercise = db
-    .prepare(
-      `SELECT e.*, l.title as lesson_title, c.title as course_title, c.id as course_id
-       FROM exercises e
-       JOIN lessons l ON l.id = e.lesson_id
-       JOIN modules m ON m.id = l.module_id
-       JOIN courses c ON c.id = m.course_id
-       WHERE e.id = ?`
-    )
-    .get(req.params.id) as Record<string, unknown> | undefined;
+exercisesRouter.get('/:id', authRequired, async (req, res) => {
+  const exercise = await Exercise.findById(req.params.id).lean();
   if (!exercise) return res.status(404).json({ error: 'Layli lama helin.' });
 
-  const questions = db
-    .prepare(
-      `SELECT id, question, type, options, hint, points, sort_order FROM questions WHERE exercise_id = ? ORDER BY sort_order`
-    )
-    .all(req.params.id) as Array<Record<string, unknown>>;
+  const lesson = await Lesson.findById(exercise.lesson_id).lean();
+  const mod = lesson ? await Module.findById(lesson.module_id).lean() : null;
+  const course = mod ? await Course.findById(mod.course_id).lean() : null;
+  const questions = await Question.find({ exercise_id: req.params.id }).sort({ sort_order: 1 }).lean();
 
   res.json({
     exercise: {
-      ...exercise,
+      ...mapId(exercise),
+      lesson_title: lesson?.title,
+      course_title: course?.title,
+      course_id: course?._id,
       questions: questions.map((q) => ({
-        ...q,
-        options: q.options ? JSON.parse(q.options as string) : null,
+        ...mapId(q),
+        options: q.options?.length ? q.options : null,
       })),
     },
   });
 });
 
-exercisesRouter.post('/:id/submit', authRequired, requireRole('STUDENT'), (req, res) => {
+exercisesRouter.post('/:id/submit', authRequired, requireRole('STUDENT'), async (req, res) => {
   const schema = z.object({
     questionId: z.string(),
     answer: z.string().min(1),
@@ -85,42 +84,33 @@ exercisesRouter.post('/:id/submit', authRequired, requireRole('STUDENT'), (req, 
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Jawaabta lama helin.' });
 
-  const question = db
-    .prepare(`SELECT * FROM questions WHERE id = ? AND exercise_id = ?`)
-    .get(parsed.data.questionId, req.params.id) as
-    | {
-        id: string;
-        correct_answer: string;
-        explanation: string;
-        hint: string;
-        points: number;
-        type: string;
-      }
-    | undefined;
-
-  if (!question) return res.status(404).json({ error: 'Su\'aasha lama helin.' });
+  const question = await Question.findOne({ _id: parsed.data.questionId, exercise_id: req.params.id }).lean();
+  if (!question) return res.status(404).json({ error: "Su'aasha lama helin." });
 
   const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
   const isCorrect = normalize(parsed.data.answer) === normalize(question.correct_answer);
 
-  const prev = db
-    .prepare(
-      `SELECT COUNT(*) as c FROM exercise_attempts WHERE student_id = ? AND question_id = ?`
-    )
-    .get(req.user!.id, question.id) as { c: number };
+  const prev = await ExerciseAttempt.countDocuments({
+    student_id: req.user!.id,
+    question_id: question._id,
+  });
 
   const score = isCorrect ? question.points : 0;
-  db.prepare(
-    `INSERT INTO exercise_attempts (id, student_id, exercise_id, question_id, answer, is_correct, score, attempt_number)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(uuid(), req.user!.id, req.params.id, question.id, parsed.data.answer, isCorrect ? 1 : 0, score, prev.c + 1);
+  await ExerciseAttempt.create({
+    student_id: req.user!.id,
+    exercise_id: req.params.id,
+    question_id: question._id,
+    answer: parsed.data.answer,
+    is_correct: isCorrect,
+    score,
+    attempt_number: prev + 1,
+  });
 
-  db.prepare(`INSERT INTO activity_log (id, student_id, action, detail) VALUES (?, ?, ?, ?)`).run(
-    uuid(),
-    req.user!.id,
-    isCorrect ? 'exercise_correct' : 'exercise_incorrect',
-    isCorrect ? 'Layli — Jawaab sax ah' : 'Layli — Jawaab khaldan'
-  );
+  await ActivityLog.create({
+    student_id: req.user!.id,
+    action: isCorrect ? 'exercise_correct' : 'exercise_incorrect',
+    detail: isCorrect ? 'Layli — Jawaab sax ah' : 'Layli — Jawaab khaldan',
+  });
 
   res.json({
     correct: isCorrect,
@@ -134,10 +124,8 @@ exercisesRouter.post('/:id/submit', authRequired, requireRole('STUDENT'), (req, 
   });
 });
 
-exercisesRouter.get('/:id/summary', authRequired, requireRole('STUDENT'), (req, res) => {
-  const questions = db
-    .prepare(`SELECT id, points FROM questions WHERE exercise_id = ?`)
-    .all(req.params.id) as { id: string; points: number }[];
+exercisesRouter.get('/:id/summary', authRequired, requireRole('STUDENT'), async (req, res) => {
+  const questions = await Question.find({ exercise_id: req.params.id }).select('_id points').lean();
 
   let correct = 0;
   let incorrect = 0;
@@ -146,13 +134,9 @@ exercisesRouter.get('/:id/summary', authRequired, requireRole('STUDENT'), (req, 
 
   for (const q of questions) {
     total += q.points;
-    const best = db
-      .prepare(
-        `SELECT is_correct, score FROM exercise_attempts
-         WHERE student_id = ? AND question_id = ?
-         ORDER BY is_correct DESC, created_at DESC LIMIT 1`
-      )
-      .get(req.user!.id, q.id) as { is_correct: number; score: number } | undefined;
+    const best = await ExerciseAttempt.findOne({ student_id: req.user!.id, question_id: q._id })
+      .sort({ is_correct: -1, created_at: -1 })
+      .lean();
     if (best?.is_correct) {
       correct++;
       earned += best.score;
@@ -175,7 +159,7 @@ exercisesRouter.get('/:id/summary', authRequired, requireRole('STUDENT'), (req, 
   });
 });
 
-exercisesRouter.post('/', authRequired, requireRole('ADMIN'), (req, res) => {
+exercisesRouter.post('/', authRequired, requireRole('ADMIN'), async (req, res) => {
   const schema = z.object({
     lessonId: z.string(),
     title: z.string().min(2),
@@ -198,36 +182,33 @@ exercisesRouter.post('/', authRequired, requireRole('ADMIN'), (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: 'Exercise data ma saxna.' });
 
   const exerciseId = uuid();
-  db.prepare(`INSERT INTO exercises (id, lesson_id, title, description) VALUES (?, ?, ?, ?)`).run(
-    exerciseId,
-    parsed.data.lessonId,
-    parsed.data.title,
-    parsed.data.description || ''
-  );
-
-  const insertQ = db.prepare(
-    `INSERT INTO questions (id, exercise_id, question, type, options, correct_answer, explanation, hint, points, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  );
-  parsed.data.questions.forEach((q, i) => {
-    insertQ.run(
-      uuid(),
-      exerciseId,
-      q.question,
-      q.type,
-      q.options ? JSON.stringify(q.options) : null,
-      q.correctAnswer,
-      q.explanation || '',
-      q.hint || '',
-      q.points ?? 10,
-      i
-    );
+  await Exercise.create({
+    _id: exerciseId,
+    lesson_id: parsed.data.lessonId,
+    title: parsed.data.title,
+    description: parsed.data.description || '',
   });
+
+  await Question.insertMany(
+    parsed.data.questions.map((q, i) => ({
+      exercise_id: exerciseId,
+      question: q.question,
+      type: q.type,
+      options: q.options || [],
+      correct_answer: q.correctAnswer,
+      explanation: q.explanation || '',
+      hint: q.hint || '',
+      points: q.points ?? 10,
+      sort_order: i,
+    }))
+  );
 
   res.status(201).json({ exercise: { id: exerciseId, title: parsed.data.title } });
 });
 
-exercisesRouter.delete('/:id', authRequired, requireRole('ADMIN'), (req, res) => {
-  db.prepare(`DELETE FROM exercises WHERE id = ?`).run(req.params.id);
+exercisesRouter.delete('/:id', authRequired, requireRole('ADMIN'), async (req, res) => {
+  await Question.deleteMany({ exercise_id: req.params.id });
+  await ExerciseAttempt.deleteMany({ exercise_id: req.params.id });
+  await Exercise.deleteOne({ _id: req.params.id });
   res.json({ ok: true });
 });

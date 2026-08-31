@@ -1,6 +1,17 @@
 import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
-import { db, initDb } from './db.js';
+import {
+  ActivityLog,
+  Course,
+  Enrollment,
+  Exercise,
+  Lesson,
+  LessonChunk,
+  LessonProgress,
+  Module,
+  Question,
+  User,
+} from './models/index.js';
 import { chunkText } from './services/ai.js';
 
 type QType = 'multiple_choice' | 'true_false' | 'short_answer';
@@ -687,111 +698,107 @@ Liiska la kala saaray, qiimaha dhexe = **3**
   },
 ];
 
-export function seedIfEmpty() {
-  initDb();
-  const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number };
-  if (userCount.c > 0) return;
+export async function seedIfEmpty() {
+  const userCount = await User.countDocuments();
+  if (userCount > 0) return;
 
   const adminId = uuid();
   const studentId = uuid();
   const student2Id = uuid();
   const hash = bcrypt.hashSync('password123', 10);
 
-  db.prepare(
-    `INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)`
-  ).run(adminId, 'Admin Tutor', 'admin@somalilearn.so', hash, 'ADMIN');
-  db.prepare(
-    `INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)`
-  ).run(studentId, 'Ahmed Hassan', 'ahmed@student.so', hash, 'STUDENT');
-  db.prepare(
-    `INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)`
-  ).run(student2Id, 'Amina Ali', 'amina@student.so', hash, 'STUDENT');
+  await User.insertMany([
+    { _id: adminId, name: 'Admin Tutor', email: 'admin@somalilearn.so', password: hash, role: 'ADMIN' },
+    { _id: studentId, name: 'Ahmed Hassan', email: 'ahmed@student.so', password: hash, role: 'STUDENT' },
+    { _id: student2Id, name: 'Amina Ali', email: 'amina@student.so', password: hash, role: 'STUDENT' },
+  ]);
 
-  const insertCourse = db.prepare(
-    `INSERT INTO courses (id, title, description, category, difficulty, sequential) VALUES (?, ?, ?, ?, ?, 0)`
-  );
-  const insertModule = db.prepare(
-    `INSERT INTO modules (id, course_id, title, sort_order) VALUES (?, ?, ?, ?)`
-  );
-  const insertLesson = db.prepare(
-    `INSERT INTO lessons (id, module_id, title, description, content, sort_order, status, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, 'published', ?)`
-  );
-  const insertChunk = db.prepare(
-    `INSERT INTO lesson_chunks (id, lesson_id, content, chunk_index) VALUES (?, ?, ?, ?)`
-  );
-  const insertExercise = db.prepare(
-    `INSERT INTO exercises (id, lesson_id, title, description) VALUES (?, ?, ?, ?)`
-  );
-  const insertQuestion = db.prepare(
-    `INSERT INTO questions (id, exercise_id, question, type, options, correct_answer, explanation, hint, points, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 10, ?)`
-  );
-  const insertEnrollment = db.prepare(
-    `INSERT INTO enrollments (id, student_id, course_id) VALUES (?, ?, ?)`
-  );
+  let firstLesson: { lesson_id: string; course_id: string } | undefined;
 
-  const seedTx = db.transaction(() => {
-    for (const course of courses) {
-      const courseId = uuid();
-      insertCourse.run(courseId, course.title, course.description, course.category, course.difficulty);
-      insertEnrollment.run(uuid(), studentId, courseId);
+  for (const course of courses) {
+    const courseId = uuid();
+    await Course.create({
+      _id: courseId,
+      title: course.title,
+      description: course.description,
+      category: course.category,
+      difficulty: course.difficulty,
+      sequential: false,
+    });
+    await Enrollment.create({ student_id: studentId, course_id: courseId });
 
-      course.modules.forEach((mod, mi) => {
-        const moduleId = uuid();
-        insertModule.run(moduleId, courseId, mod.title, mi);
+    for (let mi = 0; mi < course.modules.length; mi++) {
+      const mod = course.modules[mi];
+      const moduleId = uuid();
+      await Module.create({ _id: moduleId, course_id: courseId, title: mod.title, sort_order: mi });
 
-        mod.lessons.forEach((les, li) => {
-          const lessonId = uuid();
-          insertLesson.run(lessonId, moduleId, les.title, les.description, les.content, li, adminId);
-
-          for (const ch of chunkText(les.content)) {
-            insertChunk.run(ch.id, lessonId, ch.content, ch.chunk_index);
-          }
-
-          if (les.questions.length) {
-            const exerciseId = uuid();
-            insertExercise.run(exerciseId, lessonId, `Layli: ${les.title}`, `Practice questions for ${les.title}`);
-            les.questions.forEach((q, qi) => {
-              insertQuestion.run(
-                uuid(),
-                exerciseId,
-                q.question,
-                q.type,
-                q.options ? JSON.stringify(q.options) : null,
-                q.correctAnswer,
-                q.explanation,
-                q.hint,
-                qi
-              );
-            });
-          }
+      for (let li = 0; li < mod.lessons.length; li++) {
+        const les = mod.lessons[li];
+        const lessonId = uuid();
+        await Lesson.create({
+          _id: lessonId,
+          module_id: moduleId,
+          title: les.title,
+          description: les.description,
+          content: les.content,
+          sort_order: li,
+          status: 'published',
+          uploaded_by: adminId,
         });
-      });
+
+        await LessonChunk.insertMany(
+          chunkText(les.content).map((ch) => ({
+            lesson_id: lessonId,
+            content: ch.content,
+            chunk_index: ch.chunk_index,
+          }))
+        );
+
+        if (les.questions.length) {
+          const exerciseId = uuid();
+          await Exercise.create({
+            _id: exerciseId,
+            lesson_id: lessonId,
+            title: `Layli: ${les.title}`,
+            description: `Practice questions for ${les.title}`,
+          });
+          await Question.insertMany(
+            les.questions.map((q, qi) => ({
+              exercise_id: exerciseId,
+              question: q.question,
+              type: q.type,
+              options: q.options || [],
+              correct_answer: q.correctAnswer,
+              explanation: q.explanation,
+              hint: q.hint,
+              points: 10,
+              sort_order: qi,
+            }))
+          );
+        }
+
+        if (course.category === 'Physics' && !firstLesson) {
+          firstLesson = { lesson_id: lessonId, course_id: courseId };
+        }
+      }
     }
+  }
 
-    // Partial progress for demo student on first physics lesson
-    const firstLesson = db
-      .prepare(
-        `SELECT l.id as lesson_id, c.id as course_id FROM lessons l
-         JOIN modules m ON m.id = l.module_id
-         JOIN courses c ON c.id = m.course_id
-         WHERE c.category = 'Physics'
-         ORDER BY m.sort_order, l.sort_order LIMIT 1`
-      )
-      .get() as { lesson_id: string; course_id: string } | undefined;
+  if (firstLesson) {
+    await LessonProgress.create({
+      student_id: studentId,
+      lesson_id: firstLesson.lesson_id,
+      course_id: firstLesson.course_id,
+      completed: true,
+      completed_at: new Date(),
+    });
+    await ActivityLog.create({
+      student_id: studentId,
+      action: 'lesson_completed',
+      detail: 'What is Physics? — La dhammeeyay',
+    });
+  }
 
-    if (firstLesson) {
-      db.prepare(
-        `INSERT INTO lesson_progress (id, student_id, lesson_id, course_id, completed, completed_at)
-         VALUES (?, ?, ?, ?, 1, datetime('now'))`
-      ).run(uuid(), studentId, firstLesson.lesson_id, firstLesson.course_id);
-
-      db.prepare(
-        `INSERT INTO activity_log (id, student_id, action, detail) VALUES (?, ?, ?, ?)`
-      ).run(uuid(), studentId, 'lesson_completed', 'What is Physics? — La dhammeeyay');
-    }
-  });
-
-  seedTx();
   console.log('Database seeded with Physics, Biology, English, Chemistry, Mathematics.');
   console.log('Demo accounts:');
   console.log('  Admin:   admin@somalilearn.so / password123');
@@ -824,25 +831,20 @@ function pdfLessonPlaceholder(title: string, description?: string) {
 }
 
 /** Keep course copy short in existing databases after UI refresh. */
-export function syncContentCopy() {
-  initDb();
-  const updateCourse = db.prepare('UPDATE courses SET description = ? WHERE title = ?');
+export async function syncContentCopy() {
   for (const [title, description] of Object.entries(SHORT_COURSE_DESCRIPTIONS)) {
-    updateCourse.run(description, title);
+    await Course.updateOne({ title }, { description });
   }
-  const updateModule = db.prepare('UPDATE modules SET title = ? WHERE title = ?');
   for (const [oldTitle, newTitle] of Object.entries(SHORT_MODULE_TITLES)) {
-    updateModule.run(newTitle, oldTitle);
+    await Module.updateOne({ title: oldTitle }, { title: newTitle });
   }
 
-  // PDF lessons: keep only the file viewer — drop any old extracted text/chunks.
-  const pdfLessons = db
-    .prepare(`SELECT id, title, description FROM lessons WHERE pdf_url IS NOT NULL AND pdf_url != ''`)
-    .all() as Array<{ id: string; title: string; description: string }>;
-  const updateLesson = db.prepare(`UPDATE lessons SET content = ? WHERE id = ?`);
-  const deleteChunks = db.prepare(`DELETE FROM lesson_chunks WHERE lesson_id = ?`);
+  const pdfLessons = await Lesson.find({ pdf_url: { $exists: true, $nin: ['', null] } }).lean();
   for (const lesson of pdfLessons) {
-    updateLesson.run(pdfLessonPlaceholder(lesson.title, lesson.description), lesson.id);
-    deleteChunks.run(lesson.id);
+    await Lesson.updateOne(
+      { _id: lesson._id },
+      { content: pdfLessonPlaceholder(lesson.title, lesson.description) }
+    );
+    await LessonChunk.deleteMany({ lesson_id: lesson._id });
   }
 }

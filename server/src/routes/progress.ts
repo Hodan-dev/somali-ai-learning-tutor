@@ -1,80 +1,114 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import {
+  ActivityLog,
+  Course,
+  CourseCompletion,
+  Enrollment,
+  ExerciseAttempt,
+  Lesson,
+  LessonProgress,
+  Module,
+} from '../models/index.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
+import { lessonIdsForCourse } from '../helpers/stats.js';
 
 export const progressRouter = Router();
 
-progressRouter.get('/', authRequired, requireRole('STUDENT'), (req, res) => {
-  const courses = db
-    .prepare(
-      `SELECT c.id, c.title, c.category,
-        (SELECT COUNT(*) FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = c.id AND l.status = 'published') as total_lessons,
-        (SELECT COUNT(*) FROM lesson_progress lp WHERE lp.student_id = ? AND lp.course_id = c.id AND lp.completed = 1) as completed_lessons
-       FROM courses c
-       JOIN enrollments e ON e.course_id = c.id AND e.student_id = ?
-       ORDER BY c.category`
-    )
-    .all(req.user!.id, req.user!.id) as Array<{
-    id: string;
-    title: string;
-    category: string;
-    total_lessons: number;
-    completed_lessons: number;
-  }>;
+progressRouter.get('/', authRequired, requireRole('STUDENT'), async (req, res) => {
+  const enrollments = await Enrollment.find({ student_id: req.user!.id }).lean();
+  const courseIds = enrollments.map((e) => e.course_id);
+  const courses = await Course.find({ _id: { $in: courseIds } }).sort({ category: 1 }).lean();
 
-  const courseProgress = courses.map((c) => ({
-    ...c,
-    progress: c.total_lessons ? Math.round((c.completed_lessons / c.total_lessons) * 100) : 0,
-  }));
+  const courseProgress = await Promise.all(
+    courses.map(async (c) => {
+      const total_lessons = (await lessonIdsForCourse(c._id, true)).length;
+      const completed_lessons = await LessonProgress.countDocuments({
+        student_id: req.user!.id,
+        course_id: c._id,
+        completed: true,
+      });
+      return {
+        id: c._id,
+        title: c.title,
+        category: c.category,
+        total_lessons,
+        completed_lessons,
+        progress: total_lessons ? Math.round((completed_lessons / total_lessons) * 100) : 0,
+      };
+    })
+  );
 
   const overallLessons = courseProgress.reduce((a, c) => a + c.total_lessons, 0);
   const overallDone = courseProgress.reduce((a, c) => a + c.completed_lessons, 0);
   const overall = overallLessons ? Math.round((overallDone / overallLessons) * 100) : 0;
 
-  const exerciseStats = db
-    .prepare(
-      `SELECT
-        COUNT(DISTINCT question_id) as attempted,
-        SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_attempts,
-        AVG(CASE WHEN is_correct = 1 THEN score ELSE NULL END) as avg_score
-       FROM (
-         SELECT question_id, MAX(is_correct) as is_correct, MAX(score) as score
-         FROM exercise_attempts WHERE student_id = ?
-         GROUP BY question_id
-       )`
-    )
-    .get(req.user!.id) as { attempted: number; correct_attempts: number; avg_score: number | null };
+  const attempts = await ExerciseAttempt.aggregate([
+    { $match: { student_id: req.user!.id } },
+    { $sort: { created_at: -1 } },
+    {
+      $group: {
+        _id: '$question_id',
+        is_correct: { $max: '$is_correct' },
+        score: { $max: '$score' },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        attempted: { $sum: 1 },
+        correct_attempts: { $sum: { $cond: ['$is_correct', 1, 0] } },
+        avg_score: { $avg: { $cond: ['$is_correct', '$score', null] } },
+      },
+    },
+  ]);
+  const exerciseStats = attempts[0] || { attempted: 0, correct_attempts: 0, avg_score: 0 };
 
-  const completedCourses = db
-    .prepare(
-      `SELECT cc.final_score, cc.completed_at, c.title, c.category
-       FROM course_completions cc JOIN courses c ON c.id = cc.course_id
-       WHERE cc.student_id = ?`
-    )
-    .all(req.user!.id);
+  const completedCourses = await CourseCompletion.find({ student_id: req.user!.id }).lean();
+  const completedCoursesEnriched = await Promise.all(
+    completedCourses.map(async (cc) => {
+      const course = await Course.findById(cc.course_id).lean();
+      return {
+        final_score: cc.final_score,
+        completed_at: cc.completed_at instanceof Date ? cc.completed_at.toISOString() : cc.completed_at,
+        title: course?.title,
+        category: course?.category,
+      };
+    })
+  );
 
-  const activity = db
-    .prepare(
-      `SELECT action, detail, created_at FROM activity_log WHERE student_id = ? ORDER BY created_at DESC LIMIT 10`
-    )
-    .all(req.user!.id);
+  const activity = await ActivityLog.find({ student_id: req.user!.id })
+    .sort({ created_at: -1 })
+    .limit(10)
+    .lean();
 
-  // Continue learning target
-  const continueTarget = db
-    .prepare(
-      `SELECT l.id as lesson_id, l.title as lesson_title, c.id as course_id, c.title as course_title, c.category,
-        (SELECT COUNT(*) FROM lesson_progress lp2 WHERE lp2.student_id = ? AND lp2.course_id = c.id AND lp2.completed = 1) as done_in_course,
-        (SELECT MAX(lp3.last_accessed) FROM lesson_progress lp3 WHERE lp3.student_id = ? AND lp3.course_id = c.id) as last_touch
-       FROM lessons l
-       JOIN modules m ON m.id = l.module_id
-       JOIN courses c ON c.id = m.course_id
-       JOIN enrollments e ON e.course_id = c.id AND e.student_id = ?
-       LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.student_id = ?
-       WHERE l.status = 'published' AND (lp.completed IS NULL OR lp.completed = 0)
-       ORDER BY done_in_course DESC, COALESCE(last_touch, '') DESC, c.category, m.sort_order, l.sort_order
-       LIMIT 1`
-    )
-    .get(req.user!.id, req.user!.id, req.user!.id, req.user!.id);
+  let continueTarget: Record<string, unknown> | null = null;
+  for (const c of courses) {
+    const modules = await Module.find({ course_id: c._id }).sort({ sort_order: 1 }).lean();
+    for (const m of modules) {
+      const lessons = await Lesson.find({ module_id: m._id, status: 'published' }).sort({ sort_order: 1 }).lean();
+      for (const l of lessons) {
+        const p = await LessonProgress.findOne({ student_id: req.user!.id, lesson_id: l._id }).lean();
+        if (!p?.completed) {
+          const doneInCourse = await LessonProgress.countDocuments({
+            student_id: req.user!.id,
+            course_id: c._id,
+            completed: true,
+          });
+          continueTarget = {
+            lesson_id: l._id,
+            lesson_title: l.title,
+            course_id: c._id,
+            course_title: c.title,
+            category: c.category,
+            done_in_course: doneInCourse,
+          };
+          break;
+        }
+      }
+      if (continueTarget) break;
+    }
+    if (continueTarget) break;
+  }
 
   res.json({
     overall,
@@ -84,26 +118,28 @@ progressRouter.get('/', authRequired, requireRole('STUDENT'), (req, res) => {
     exercisesAttempted: exerciseStats.attempted || 0,
     averageScore: Math.round(exerciseStats.avg_score || 0),
     courses: courseProgress,
-    completedCourses,
-    activity,
-    continueLearning: continueTarget || null,
+    completedCourses: completedCoursesEnriched,
+    activity: activity.map((a) => ({
+      action: a.action,
+      detail: a.detail,
+      created_at: a.created_at instanceof Date ? a.created_at.toISOString() : a.created_at,
+    })),
+    continueLearning: continueTarget,
   });
 });
 
-progressRouter.get('/:courseId', authRequired, requireRole('STUDENT'), (req, res) => {
-  const total = db
-    .prepare(
-      `SELECT COUNT(*) as c FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = ? AND l.status = 'published'`
-    )
-    .get(req.params.courseId) as { c: number };
-  const done = db
-    .prepare(`SELECT COUNT(*) as c FROM lesson_progress WHERE student_id = ? AND course_id = ? AND completed = 1`)
-    .get(req.user!.id, req.params.courseId) as { c: number };
+progressRouter.get('/:courseId', authRequired, requireRole('STUDENT'), async (req, res) => {
+  const total = (await lessonIdsForCourse(req.params.courseId, true)).length;
+  const done = await LessonProgress.countDocuments({
+    student_id: req.user!.id,
+    course_id: req.params.courseId,
+    completed: true,
+  });
 
   res.json({
     courseId: req.params.courseId,
-    progress: total.c ? Math.round((done.c / total.c) * 100) : 0,
-    completedLessons: done.c,
-    totalLessons: total.c,
+    progress: total ? Math.round((done / total) * 100) : 0,
+    completedLessons: done,
+    totalLessons: total,
   });
 });

@@ -1,125 +1,166 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import {
+  ActivityLog,
+  Course,
+  Exercise,
+  ExerciseAttempt,
+  Lesson,
+  LessonProgress,
+  Module,
+  User,
+} from '../models/index.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
+import { lessonIdsForCourse } from '../helpers/stats.js';
 
 export const adminRouter = Router();
 
 adminRouter.use(authRequired, requireRole('ADMIN'));
 
-adminRouter.get('/stats', (_req, res) => {
-  const students = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'STUDENT'`).get() as { c: number };
-  const courses = db.prepare(`SELECT COUNT(*) as c FROM courses`).get() as { c: number };
-  const lessons = db.prepare(`SELECT COUNT(*) as c FROM lessons`).get() as { c: number };
-  const exercises = db.prepare(`SELECT COUNT(*) as c FROM exercises`).get() as { c: number };
+adminRouter.get('/stats', async (_req, res) => {
+  const [totalStudents, totalCourses, totalLessons, totalExercises] = await Promise.all([
+    User.countDocuments({ role: 'STUDENT' }),
+    Course.countDocuments(),
+    Lesson.countDocuments(),
+    Exercise.countDocuments(),
+  ]);
 
-  const recentStudents = db
-    .prepare(`SELECT id, name, email, created_at FROM users WHERE role = 'STUDENT' ORDER BY created_at DESC LIMIT 5`)
-    .all();
-  const recentLessons = db
-    .prepare(
-      `SELECT l.id, l.title, l.created_at, c.title as course_title
-       FROM lessons l JOIN modules m ON m.id = l.module_id JOIN courses c ON c.id = m.course_id
-       ORDER BY l.created_at DESC LIMIT 5`
-    )
-    .all();
-  const recentActivity = db
-    .prepare(
-      `SELECT a.action, a.detail, a.created_at, u.name as student_name
-       FROM activity_log a JOIN users u ON u.id = a.student_id
-       ORDER BY a.created_at DESC LIMIT 10`
-    )
-    .all();
+  const recentStudents = await User.find({ role: 'STUDENT' })
+    .sort({ created_at: -1 })
+    .limit(5)
+    .select('_id name email created_at')
+    .lean();
+
+  const recentLessons = await Lesson.find().sort({ created_at: -1 }).limit(5).lean();
+  const recentLessonsEnriched = await Promise.all(
+    recentLessons.map(async (l) => {
+      const mod = await Module.findById(l.module_id).lean();
+      const course = mod ? await Course.findById(mod.course_id).lean() : null;
+      return {
+        id: l._id,
+        title: l.title,
+        created_at: l.created_at instanceof Date ? l.created_at.toISOString() : l.created_at,
+        course_title: course?.title,
+      };
+    })
+  );
+
+  const recentActivity = await ActivityLog.find().sort({ created_at: -1 }).limit(10).lean();
+  const recentActivityEnriched = await Promise.all(
+    recentActivity.map(async (a) => {
+      const student = await User.findById(a.student_id).select('name').lean();
+      return {
+        action: a.action,
+        detail: a.detail,
+        created_at: a.created_at instanceof Date ? a.created_at.toISOString() : a.created_at,
+        student_name: student?.name,
+      };
+    })
+  );
 
   res.json({
-    stats: {
-      totalStudents: students.c,
-      totalCourses: courses.c,
-      totalLessons: lessons.c,
-      totalExercises: exercises.c,
-    },
-    recentStudents,
-    recentLessons,
-    recentActivity,
+    stats: { totalStudents, totalCourses, totalLessons, totalExercises },
+    recentStudents: recentStudents.map((s) => ({
+      id: s._id,
+      name: s.name,
+      email: s.email,
+      created_at: s.created_at instanceof Date ? s.created_at.toISOString() : s.created_at,
+    })),
+    recentLessons: recentLessonsEnriched,
+    recentActivity: recentActivityEnriched,
   });
 });
 
-adminRouter.get('/students', (_req, res) => {
-  const students = db
-    .prepare(`SELECT id, name, email, created_at FROM users WHERE role = 'STUDENT' ORDER BY name`)
-    .all() as Array<{ id: string; name: string; email: string; created_at: string }>;
+adminRouter.get('/students', async (_req, res) => {
+  const students = await User.find({ role: 'STUDENT' }).sort({ name: 1 }).lean();
+  const lessonTotal = await Lesson.countDocuments({ status: 'published' });
 
-  const enriched = students.map((s) => {
-    const lessonDone = db
-      .prepare(`SELECT COUNT(*) as c FROM lesson_progress WHERE student_id = ? AND completed = 1`)
-      .get(s.id) as { c: number };
-    const lessonTotal = db
-      .prepare(`SELECT COUNT(*) as c FROM lessons WHERE status = 'published'`)
-      .get() as { c: number };
-    return {
-      ...s,
-      lessonsCompleted: lessonDone.c,
-      overallProgress: lessonTotal.c ? Math.round((lessonDone.c / lessonTotal.c) * 100) : 0,
-    };
-  });
+  const enriched = await Promise.all(
+    students.map(async (s) => {
+      const lessonDone = await LessonProgress.countDocuments({ student_id: s._id, completed: true });
+      return {
+        id: s._id,
+        name: s.name,
+        email: s.email,
+        created_at: s.created_at instanceof Date ? s.created_at.toISOString() : s.created_at,
+        lessonsCompleted: lessonDone,
+        overallProgress: lessonTotal ? Math.round((lessonDone / lessonTotal) * 100) : 0,
+      };
+    })
+  );
 
   res.json({ students: enriched });
 });
 
-adminRouter.get('/students/:id/progress', (req, res) => {
-  const student = db
-    .prepare(`SELECT id, name, email, created_at FROM users WHERE id = ? AND role = 'STUDENT'`)
-    .get(req.params.id) as { id: string; name: string; email: string; created_at: string } | undefined;
+adminRouter.get('/students/:id/progress', async (req, res) => {
+  const student = await User.findOne({ _id: req.params.id, role: 'STUDENT' }).lean();
   if (!student) return res.status(404).json({ error: 'Ardayga lama helin.' });
 
-  const courses = db
-    .prepare(
-      `SELECT c.id, c.title, c.category,
-        (SELECT COUNT(*) FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = c.id AND l.status = 'published') as total_lessons,
-        (SELECT COUNT(*) FROM lesson_progress lp WHERE lp.student_id = ? AND lp.course_id = c.id AND lp.completed = 1) as completed_lessons
-       FROM courses c ORDER BY c.category`
-    )
-    .all(req.params.id) as Array<{
-    id: string;
-    title: string;
-    category: string;
-    total_lessons: number;
-    completed_lessons: number;
-  }>;
-
-  const courseProgress = courses.map((c) => ({
-    ...c,
-    progress: c.total_lessons ? Math.round((c.completed_lessons / c.total_lessons) * 100) : 0,
-  }));
+  const courses = await Course.find().sort({ category: 1 }).lean();
+  const courseProgress = await Promise.all(
+    courses.map(async (c) => {
+      const total_lessons = (await lessonIdsForCourse(c._id, true)).length;
+      const completed_lessons = await LessonProgress.countDocuments({
+        student_id: req.params.id,
+        course_id: c._id,
+        completed: true,
+      });
+      return {
+        id: c._id,
+        title: c.title,
+        category: c.category,
+        total_lessons,
+        completed_lessons,
+        progress: total_lessons ? Math.round((completed_lessons / total_lessons) * 100) : 0,
+      };
+    })
+  );
 
   const overallLessons = courseProgress.reduce((a, c) => a + c.total_lessons, 0);
   const overallDone = courseProgress.reduce((a, c) => a + c.completed_lessons, 0);
 
-  const ex = db
-    .prepare(
-      `SELECT COUNT(DISTINCT question_id) as attempted,
-        AVG(score) as avg_score
-       FROM exercise_attempts WHERE student_id = ? AND is_correct = 1`
-    )
-    .get(req.params.id) as { attempted: number; avg_score: number | null };
+  const ex = await ExerciseAttempt.aggregate([
+    { $match: { student_id: req.params.id, is_correct: true } },
+    {
+      $group: {
+        _id: null,
+        attempted: { $addToSet: '$question_id' },
+        avg_score: { $avg: '$score' },
+      },
+    },
+    { $project: { attempted: { $size: '$attempted' }, avg_score: 1 } },
+  ]);
 
   res.json({
-    student,
+    student: {
+      id: student._id,
+      name: student.name,
+      email: student.email,
+      created_at: student.created_at instanceof Date ? student.created_at.toISOString() : student.created_at,
+    },
     overallProgress: overallLessons ? Math.round((overallDone / overallLessons) * 100) : 0,
     lessonsCompleted: overallDone,
     lessonsTotal: overallLessons,
-    exercisesCompleted: ex.attempted || 0,
-    averageScore: Math.round(ex.avg_score || 0),
+    exercisesCompleted: ex[0]?.attempted || 0,
+    averageScore: Math.round(ex[0]?.avg_score || 0),
     courses: courseProgress,
   });
 });
 
-adminRouter.get('/modules', (_req, res) => {
-  const modules = db
-    .prepare(
-      `SELECT m.id, m.title, m.sort_order, c.id as course_id, c.title as course_title, c.category
-       FROM modules m JOIN courses c ON c.id = m.course_id
-       ORDER BY c.category, m.sort_order`
-    )
-    .all();
-  res.json({ modules });
+adminRouter.get('/modules', async (_req, res) => {
+  const modules = await Module.find().sort({ sort_order: 1 }).lean();
+  const enriched = await Promise.all(
+    modules.map(async (m) => {
+      const course = await Course.findById(m.course_id).lean();
+      return {
+        id: m._id,
+        title: m.title,
+        sort_order: m.sort_order,
+        course_id: m.course_id,
+        course_title: course?.title,
+        category: course?.category,
+      };
+    })
+  );
+  enriched.sort((a, b) => (a.category || '').localeCompare(b.category || '') || a.sort_order - b.sort_order);
+  res.json({ modules: enriched });
 });
