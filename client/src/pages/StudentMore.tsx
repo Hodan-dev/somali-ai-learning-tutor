@@ -1,10 +1,21 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { Pencil, Save } from 'lucide-react';
 import { useAuth } from '../auth';
 import { api } from '../lib/api';
 import { useApiData } from '../lib/useApiData';
-import { CourseProgressRow, ErrorBox, Loading, ProgressBar } from '../components/ui';
+import { ErrorBox, Loading } from '../components/ui';
+import {
+  Award,
+  BookOpenCheck,
+  CategoryBarChart,
+  CourseProgressBars,
+  Gauge,
+  LessonBreakdownDonut,
+  ListChecks,
+  ProgressStatCard,
+  RingGauge,
+  ScoreBars,
+} from '../components/student/ProgressCharts';
 import type { User } from '../lib/api';
 
 type ProgressData = {
@@ -31,56 +42,94 @@ export function ProgressPage() {
         <p className="mt-1 text-muted">La soco casharrada, layliyada, iyo koorsooyinka.</p>
       </div>
 
-      <section className="rounded-2xl border border-blue-100 bg-white p-5">
-        <div className="flex items-center gap-4">
-          <div className="font-display text-4xl font-bold text-sea">{data.overall}%</div>
-          <div className="flex-1">
-            <p className="mb-1.5 text-sm text-muted">Guud ahaan</p>
-            <ProgressBar value={data.overall} />
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <Stat label="Cashar" value={`${data.lessonsCompleted}/${data.lessonsTotal}`} />
-          <Stat label="Layli" value={String(data.exercisesCompleted)} />
-          <Stat label="Avg" value={`${data.averageScore}%`} />
-        </div>
-      </section>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <ProgressStatCard
+          title="Guud ahaan"
+          value={`${data.overall}%`}
+          subtitle="Horumarka guud ee dhammaan koorsooyinka"
+          icon={Gauge}
+          gradient="bg-gradient-to-br from-sky-500 to-sky-700"
+          barPercent={data.overall}
+        />
+        <ProgressStatCard
+          title="Cashar"
+          value={`${data.lessonsCompleted}/${data.lessonsTotal}`}
+          subtitle="Casharrada la dhammeeyay"
+          icon={BookOpenCheck}
+          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
+          barPercent={data.lessonsTotal ? Math.round((data.lessonsCompleted / data.lessonsTotal) * 100) : 0}
+        />
+        <ProgressStatCard
+          title="Layli"
+          value={String(data.exercisesCompleted)}
+          subtitle="Layliyada si sax ah loo xaliyay"
+          icon={ListChecks}
+          gradient="bg-gradient-to-br from-violet-500 to-purple-700"
+          barPercent={data.exercisesCompleted > 0 ? 100 : 0}
+        />
+        <ProgressStatCard
+          title="Avg"
+          value={`${data.averageScore}%`}
+          subtitle="Celceliska dhibcaha layliyada"
+          icon={Award}
+          gradient="bg-gradient-to-br from-amber-500 to-orange-600"
+          barPercent={data.averageScore}
+        />
+      </div>
 
-      <section className="space-y-2">
-        <h2 className="font-display text-lg font-semibold">Koorsooyinka</h2>
-        {data.courses.map((c) => (
-          <Link
-            key={c.id}
-            to={`/app/courses/${c.id}`}
-            className="block rounded-xl border border-blue-100 bg-white px-3 py-2.5 hover:border-blue-200"
-          >
-            <CourseProgressRow title={c.title} subtitle={c.category} progress={c.progress} />
-          </Link>
-        ))}
-      </section>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="font-display text-lg font-semibold text-ink">Horumarka guud</h2>
+          <p className="mt-1 text-sm text-muted">Boqolleyda guud ee barashadaada</p>
+          <div className="mt-4 flex justify-center py-2">
+            <RingGauge value={data.overall} label="Guud ahaan" />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="font-display text-lg font-semibold text-ink">Casharrada</h2>
+          <p className="mt-1 text-sm text-muted">La dhammeeyay vs hadhay</p>
+          <div className="mt-2">
+            <LessonBreakdownDonut completed={data.lessonsCompleted} total={data.lessonsTotal} />
+          </div>
+        </section>
+      </div>
+
+      {data.courses.length > 0 && (
+        <div className="grid gap-5 lg:grid-cols-2">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="font-display text-lg font-semibold text-ink">Koorsooyinka</h2>
+            <p className="mt-1 text-sm text-muted">Horumarka koorso kasta</p>
+            <div className="mt-4">
+              <CourseProgressBars courses={data.courses} />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="font-display text-lg font-semibold text-ink">Mawduucyada</h2>
+            <p className="mt-1 text-sm text-muted">Celceliska horumarka mawduuc kasta</p>
+            <div className="mt-4">
+              <CategoryBarChart courses={data.courses} />
+            </div>
+          </section>
+        </div>
+      )}
 
       {data.completedCourses.length > 0 && (
-        <section className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <h2 className="font-display text-base font-semibold">La dhammeeyay</h2>
-          <ul className="mt-2 space-y-1 text-sm text-ink">
-            {data.completedCourses.map((c, i) => (
-              <li key={i} className="flex justify-between gap-2">
-                <span className="truncate">{c.title}</span>
-                <span className="shrink-0 font-semibold text-sea">{Math.round(c.final_score)}%</span>
-              </li>
-            ))}
-          </ul>
+        <section className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+          <h2 className="font-display text-lg font-semibold text-ink">La dhammeeyay</h2>
+          <p className="mt-1 text-sm text-muted">Koorsooyinka aad dhammaysay iyo dhibcaha</p>
+          <div className="mt-4">
+            <ScoreBars
+              items={data.completedCourses.map((c) => ({
+                title: c.title,
+                score: c.final_score,
+                category: c.category,
+              }))}
+            />
+          </div>
         </section>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-sea-light/60 px-2 py-2.5">
-      <div className="text-[11px] text-muted">{label}</div>
-      <div className="mt-0.5 font-display text-base font-bold text-ink">{value}</div>
     </div>
   );
 }
