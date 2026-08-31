@@ -110,6 +110,52 @@ MONGODB_URI=mongodb://127.0.0.1:27017/somali-tutor
 
 If `MONGODB_URI` is not set, the server uses an **in-memory MongoDB** for local development (data resets on restart). For production, point `MONGODB_URI` at your MongoDB instance or [MongoDB Atlas](https://www.mongodb.com/atlas).
 
+## MongoDB + Compass (fix “Failed to connect to localhost:27017”)
+
+Compass connects to **your computer’s** MongoDB — not the cloud dev server. If you see that error, MongoDB is not running on your PC yet.
+
+### Option A — Docker (easiest)
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+```bash
+npm run db          # start MongoDB on localhost:27017
+npm run dev         # start the app (seeds data on first run)
+```
+
+In **MongoDB Compass**, connect with:
+
+```text
+mongodb://localhost:27017/somali-tutor
+```
+
+Stop MongoDB when done: `npm run db:stop`
+
+### Option B — Install MongoDB on Windows
+
+1. Download **MongoDB Community Server**: https://www.mongodb.com/try/download/community  
+2. Run the installer → choose **Complete** → check **Install MongoDB as a Service**  
+3. Open **Services** (`Win + R` → `services.msc`) → find **MongoDB Server** → **Start**  
+4. Open Compass → connection string:
+
+```text
+mongodb://localhost:27017/somali-tutor
+```
+
+5. In `server/.env` set:
+
+```env
+MONGODB_URI=mongodb://localhost:27017/somali-tutor
+```
+
+6. Run `npm run dev` — demo courses and users are created automatically.
+
+### Compass tips
+
+- Use exactly: `mongodb://localhost:27017/somali-tutor` (database name `somali-tutor`)  
+- Delete duplicate `localhost:27017` saved connections in Compass if you have many  
+- After the app runs once, refresh Compass to see collections (`users`, `courses`, `lessons`, …)
+
 ## Project layout
 
 ```text

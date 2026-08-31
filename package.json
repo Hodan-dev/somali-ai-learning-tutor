@@ -9,6 +9,9 @@
     "build": "npm run build --prefix client",
     "start": "npm run start --prefix server",
     "start:fast": "npm run build --prefix client && npm run start --prefix server",
+    "db": "docker compose up -d mongo",
+    "db:stop": "docker compose down",
+    "db:logs": "docker compose logs -f mongo",
     "pptx": "node docs/presentation/generate.mjs"
   },
   "devDependencies": {
