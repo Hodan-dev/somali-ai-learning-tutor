@@ -165,47 +165,53 @@ export function LandingPage() {
       </header>
 
       <section id="home" className="scroll-mt-20">
-        <div className="relative overflow-hidden bg-gradient-to-b from-sky-400 via-sky-200 to-white">
-          <div className="pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-white/30 blur-3xl" />
-          <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-sky-300/40 blur-3xl" />
+        <div className="relative min-h-[520px] overflow-hidden bg-[#0038e8] lg:min-h-[580px]">
+          <img
+            src="/hero-students.jpg"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover object-[65%_center]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0038e8] via-[#0038e8]/92 to-[#0038e8]/25 sm:via-[#0038e8]/88" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0038e8]/40 via-transparent to-[#0038e8]/20" />
 
-          <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:py-20">
-            <div className="relative z-10">
-              <p className="mb-4 inline-flex rounded-full bg-white/80 px-4 py-1.5 text-sm font-semibold text-sky-700 shadow-sm backdrop-blur">
+          <div className="relative mx-auto flex max-w-6xl items-center px-4 py-14 sm:px-6 lg:py-20">
+            <div className="max-w-xl lg:max-w-2xl">
+              <p className="mb-4 inline-flex rounded-full border border-white/30 bg-white/15 px-4 py-1.5 text-sm font-semibold text-white backdrop-blur-sm">
                 Somali AI Learning Tutor
               </p>
-              <h1 className="font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white drop-shadow-md sm:text-5xl lg:text-[3.4rem]">
+              <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.5rem]">
                 Waxbarta aan barwaaqo gaarnee
               </h1>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-sky-50 sm:text-lg">
+              <p className="mt-5 text-base leading-relaxed text-white sm:text-lg">
                 Baro Physics, Biology, English, Chemistry, iyo Mathematics — casharro cad, layliyo,
                 macallin AI, iyo raadinta horumarkaaga hal meel.
               </p>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/90">
+              <p className="mt-3 text-sm leading-relaxed text-blue-100">
                 A learning platform built for Somali students — study lessons, practice exercises,
                 ask the AI tutor anytime, and track your progress.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-sky-700 shadow-md transition hover:bg-sky-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[#0038e8] shadow-lg transition hover:bg-blue-50"
                 >
                   Register Free <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
                   href="#how-it-works"
-                  className="inline-flex items-center gap-2 rounded-xl border-2 border-white/80 bg-white/20 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30"
+                  className="inline-flex items-center gap-2 rounded-xl border-2 border-white bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
                 >
                   How it works
                 </a>
                 <Link
                   to="/login"
-                  className="inline-flex items-center rounded-xl px-4 py-3 text-sm font-medium text-white hover:underline"
+                  className="inline-flex items-center rounded-xl px-4 py-3 text-sm font-semibold text-white underline-offset-4 hover:underline"
                 >
                   Login
                 </Link>
               </div>
-              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/95">
+              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-white">
                 {['Physics', 'Biology', 'English', 'Chemistry', 'Mathematics'].map((subject) => (
                   <li key={subject} className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-white" />
@@ -213,20 +219,6 @@ export function LandingPage() {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            <div className="relative">
-              <div className="overflow-hidden rounded-[2rem] border-4 border-white bg-white p-2 shadow-[0_25px_60px_-20px_rgba(14,165,233,0.45)]">
-                <img
-                  src="/hero-students.jpg"
-                  alt="Somali students learning together"
-                  className="aspect-[4/3] w-full rounded-[1.5rem] object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-4 -left-4 hidden rounded-2xl border border-white/80 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:block">
-                <p className="text-xs font-medium text-sky-600">Barasho · Horumar · Barwaaqo</p>
-                <p className="font-display text-sm font-bold text-ink">Learn · Grow · Prosper</p>
-              </div>
             </div>
           </div>
         </div>
