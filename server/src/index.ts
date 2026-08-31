@@ -56,16 +56,20 @@ app.use('/api/ai', aiRouter);
 app.use('/api/admin', adminRouter);
 
 app.get('/api/profile', authRequired, async (req, res) => {
-  const user = await User.findById(req.user!.id).lean();
+  const studentId = req.user!.id;
+  const user =
+    (await User.findById(studentId).lean()) ||
+    (await User.findOne({ email: req.user!.email.toLowerCase() }).lean());
   if (!user) return res.status(404).json({ error: 'User not found.' });
 
   const userOut = toPlain(user);
+  delete userOut.password;
 
   if (user.role === 'STUDENT') {
     const [enrolled, completed, lessons] = await Promise.all([
-      Enrollment.countDocuments({ student_id: user.id }),
-      CourseCompletion.countDocuments({ student_id: user.id }),
-      LessonProgress.countDocuments({ student_id: user.id, completed: true }),
+      Enrollment.countDocuments({ student_id: studentId }),
+      CourseCompletion.countDocuments({ student_id: studentId }),
+      LessonProgress.countDocuments({ student_id: studentId, completed: true }),
     ]);
     return res.json({
       user: userOut,
