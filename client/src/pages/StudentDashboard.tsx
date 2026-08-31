@@ -73,7 +73,7 @@ function StatCard({
       <div className="relative flex h-full flex-col justify-between gap-5">
         <div className="flex items-start gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 shadow-inner backdrop-blur-sm sm:h-[4.5rem] sm:w-[4.5rem]">
-            <Icon className="h-8 w-8 sm:h-9 sm:w-9" strokeWidth={1.75} />
+            <Icon className="h-8 w-8 sm:h-9 sm:w-9" />
           </div>
           <div className="min-w-0 flex-1 pt-1">
             <p className="text-sm font-medium text-white/90 sm:text-base">{title}</p>
