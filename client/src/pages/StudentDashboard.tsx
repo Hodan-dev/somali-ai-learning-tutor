@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
+  Award,
   BookOpen,
+  BookOpenCheck,
   Bot,
   CheckCircle2,
-  ClipboardList,
+  Gauge,
+  ListChecks,
   Play,
   Sparkles,
-  Target,
-  TrendingUp,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAuth } from '../auth';
@@ -55,25 +56,42 @@ function StatCard({
   subtitle,
   icon: Icon,
   gradient,
+  barPercent,
 }: {
   title: string;
   value: string | number;
   subtitle: string;
   icon: ComponentType<{ className?: string }>;
   gradient: string;
+  barPercent?: number;
 }) {
+  const bar = barPercent ?? 0;
+
   return (
-    <article className={`overflow-hidden rounded-2xl p-5 text-white shadow-md ${gradient}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20">
-          <Icon className="h-5 w-5" />
+    <article className={`relative min-h-[168px] overflow-hidden rounded-2xl p-6 text-white shadow-lg sm:min-h-[180px] sm:p-7 ${gradient}`}>
+      <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/10" />
+      <div className="relative flex h-full flex-col justify-between gap-5">
+        <div className="flex items-start gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 shadow-inner backdrop-blur-sm sm:h-[4.5rem] sm:w-[4.5rem]">
+            <Icon className="h-8 w-8 sm:h-9 sm:w-9" strokeWidth={1.75} />
+          </div>
+          <div className="min-w-0 flex-1 pt-1">
+            <p className="text-sm font-medium text-white/90 sm:text-base">{title}</p>
+            <p className="mt-1 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-[2.75rem]">
+              {value}
+            </p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-xs font-medium text-white/80">{title}</p>
-          <p className="font-display text-2xl font-bold sm:text-3xl">{value}</p>
+        <div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/25">
+            <div
+              className="h-full rounded-full bg-white transition-all"
+              style={{ width: `${Math.min(100, Math.max(8, bar))}%` }}
+            />
+          </div>
+          <p className="mt-2.5 text-sm text-white/90">{subtitle}</p>
         </div>
       </div>
-      <p className="mt-3 text-xs text-white/85">{subtitle}</p>
     </article>
   );
 }
@@ -160,34 +178,42 @@ export function StudentDashboard() {
         <p className="mt-1 text-sm text-muted">Track your learning — Learn, practice, ask AI, and improve.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
         <StatCard
           title="Overall Progress"
           value={`${data.overall}%`}
-          subtitle="Across all enrolled courses"
-          icon={TrendingUp}
-          gradient="bg-gradient-to-br from-blue-500 to-blue-700"
+          subtitle="Your total learning progress across all courses"
+          icon={Gauge}
+          gradient="bg-gradient-to-br from-blue-500 to-blue-800"
+          barPercent={data.overall}
         />
         <StatCard
-          title="Lessons Done"
+          title="Lessons Completed"
           value={`${data.lessonsCompleted}/${data.lessonsTotal}`}
-          subtitle="Completed lessons"
-          icon={BookOpen}
-          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
+          subtitle="Lessons finished out of all available"
+          icon={BookOpenCheck}
+          gradient="bg-gradient-to-br from-emerald-500 to-emerald-800"
+          barPercent={data.lessonsTotal ? Math.round((data.lessonsCompleted / data.lessonsTotal) * 100) : 0}
         />
         <StatCard
-          title="Exercises"
+          title="Exercises Done"
           value={data.exercisesCompleted}
-          subtitle={`${data.exercisesAttempted} attempted`}
-          icon={ClipboardList}
-          gradient="bg-gradient-to-br from-violet-500 to-purple-700"
+          subtitle={`${data.exercisesAttempted} exercises attempted in total`}
+          icon={ListChecks}
+          gradient="bg-gradient-to-br from-violet-500 to-purple-800"
+          barPercent={
+            data.exercisesAttempted
+              ? Math.round((data.exercisesCompleted / data.exercisesAttempted) * 100)
+              : 0
+          }
         />
         <StatCard
           title="Average Score"
           value={`${data.averageScore}%`}
-          subtitle="Exercise performance"
-          icon={Target}
-          gradient="bg-gradient-to-br from-orange-500 to-orange-600"
+          subtitle="Your average score on completed exercises"
+          icon={Award}
+          gradient="bg-gradient-to-br from-amber-500 to-orange-600"
+          barPercent={data.averageScore}
         />
       </div>
 
