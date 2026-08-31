@@ -161,8 +161,10 @@ function renderSimpleMarkdown(src: string): string {
     }
     if (inTable) flushTable();
 
-    if (line.startsWith('# ')) out.push(`<h1>${inline(line.slice(2))}</h1>`);
+    else if (line.trim() === '---') out.push('<hr />');
+    else if (line.startsWith('# ')) out.push(`<h1>${inline(line.slice(2))}</h1>`);
     else if (line.startsWith('## ')) out.push(`<h2>${inline(line.slice(3))}</h2>`);
+    else if (line.startsWith('### ')) out.push(`<h3>${inline(line.slice(4))}</h3>`);
     else if (line.startsWith('> ')) out.push(`<blockquote>${inline(line.slice(2))}</blockquote>`);
     else if (line.startsWith('- ')) out.push(`<li>${inline(line.slice(2))}</li>`);
     else if (/^\d+\.\s/.test(line)) out.push(`<li>${inline(line.replace(/^\d+\.\s/, ''))}</li>`);

@@ -63,10 +63,25 @@ body {
   color: var(--color-sea-dark);
 }
 
+.prose-lesson h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem;
+  color: #1e40af;
+}
+
 .prose-lesson p {
   margin: 0.7rem 0;
-  line-height: 1.7;
+  line-height: 1.85;
   color: #334155;
+  font-size: 1.02rem;
+}
+
+.prose-lesson hr {
+  margin: 1.5rem 0;
+  border: none;
+  border-top: 1px solid #dbeafe;
 }
 
 .prose-lesson ul,

@@ -11,6 +11,9 @@ interface LessonData {
     title: string;
     content: string;
     pdf_url?: string;
+    pdf_start_page?: number;
+    pdf_end_page?: number;
+    content_extracted?: boolean;
     course_id: string;
     course_title: string;
     module_title: string;
@@ -215,8 +218,15 @@ export function LessonPage() {
         </div>
         <h1 className="font-display text-3xl font-bold text-ink">{lesson.title}</h1>
 
+        {lesson.content && lesson.content.length > 40 ? (
+          <div className="mt-6 max-w-none">
+            <LessonContent content={lesson.content} />
+          </div>
+        ) : null}
+
         {lesson.pdf_url ? (
-          <div className="mt-4">
+          <div className={lesson.content && lesson.content.length > 40 ? 'mt-8' : 'mt-4'}>
+            <h2 className="mb-2 font-display text-lg font-semibold text-ink">Buugga PDF — Manhajka</h2>
             <Suspense
               fallback={
                 <div className="flex min-h-[280px] items-center justify-center rounded-xl border border-blue-100 bg-white text-sm text-muted">
@@ -224,12 +234,17 @@ export function LessonPage() {
                 </div>
               }
             >
-              <PdfViewer url={lesson.pdf_url} title={lesson.title} />
+              <PdfViewer
+                url={lesson.pdf_url}
+                title={lesson.title}
+                startPage={lesson.pdf_start_page}
+                endPage={lesson.pdf_end_page}
+              />
             </Suspense>
           </div>
-        ) : (
-          <LessonContent content={lesson.content} />
-        )}
+        ) : !lesson.content || lesson.content.length <= 40 ? (
+          <LessonContent content={lesson.content || ''} />
+        ) : null}
 
         {doneMsg && (
           <div className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">

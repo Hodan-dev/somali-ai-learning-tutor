@@ -1,0 +1,42 @@
+[
+  {
+    "sourceFile": "f2_physics.compressed.pdf",
+    "windowsPath": "E:\\Buugaagta manhajka\\F2\\f2_physics.compressed.pdf",
+    "title": "Form 2 Physics",
+    "category": "Physics",
+    "form": "Form 2",
+    "pagesPerLesson": 10
+  },
+  {
+    "sourceFile": "math3.compressed.pdf",
+    "windowsPath": "E:\\Buugaagta manhajka\\F3\\math3.compressed.pdf",
+    "title": "Form 3 Mathematics",
+    "category": "Mathematics",
+    "form": "Form 3",
+    "pagesPerLesson": 10
+  },
+  {
+    "sourceFile": "pysics_f3.compressed.pdf",
+    "windowsPath": "E:\\Buugaagta manhajka\\F3\\pysics_f3.compressed.pdf",
+    "title": "Form 3 Physics",
+    "category": "Physics",
+    "form": "Form 3",
+    "pagesPerLesson": 10
+  },
+  {
+    "sourceFile": "English_form_four_book.pdf",
+    "windowsPath": "E:\\Buugaagta manhajka\\F4\\English_form_four_book.pdf",
+    "title": "Form 4 English",
+    "category": "English",
+    "form": "Form 4",
+    "pagesPerLesson": 12
+  },
+  {
+    "sourceFile": "f4-Chemistry.compressed.pdf",
+    "windowsPath": "E:\\Buugaagta manhajka\\F4\\f4-Chemistry.compressed.pdf",
+    "title": "Form 4 Chemistry",
+    "category": "Chemistry",
+    "form": "Form 4",
+    "pagesPerLesson": 10
+  }
+]

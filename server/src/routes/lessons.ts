@@ -138,7 +138,7 @@ lessonsRouter.get('/:id', authRequired, async (req, res) => {
     completed = !!p?.completed;
   }
 
-  if (lesson.pdf_url) {
+  if (lesson.pdf_url && !lessonDoc.content_extracted) {
     lesson.content = pdfLessonPlaceholder(String(lesson.title), String(lesson.description || ''));
   }
 

@@ -839,7 +839,10 @@ export async function syncContentCopy() {
     await Module.updateOne({ title: oldTitle }, { title: newTitle });
   }
 
-  const pdfLessons = await Lesson.find({ pdf_url: { $exists: true, $nin: ['', null] } }).lean();
+  const pdfLessons = await Lesson.find({
+    pdf_url: { $exists: true, $nin: ['', null] },
+    content_extracted: { $ne: true },
+  }).lean();
   for (const lesson of pdfLessons) {
     await Lesson.updateOne(
       { _id: lesson._id },

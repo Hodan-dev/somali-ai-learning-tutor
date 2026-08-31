@@ -12,6 +12,7 @@
     "db": "docker compose up -d mongo",
     "db:stop": "docker compose down",
     "db:logs": "docker compose logs -f mongo",
+    "import:curriculum": "npm run import:curriculum --prefix server",
     "pptx": "node docs/presentation/generate.mjs"
   },
   "devDependencies": {

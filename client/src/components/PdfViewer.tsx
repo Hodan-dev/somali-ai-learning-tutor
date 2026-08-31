@@ -7,6 +7,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 type Props = {
   url: string;
   title?: string;
+  startPage?: number;
+  endPage?: number;
 };
 
 const pdfOptions = {
@@ -16,9 +18,10 @@ const pdfOptions = {
 };
 
 /** Progressive PDF viewer — streams pages so large files open much faster than an iframe. */
-export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
+export function PdfViewer({ url, title = 'PDF lesson', startPage = 1, endPage }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [page, setPage] = useState(1);
+  const safeStart = Math.max(1, startPage);
+  const [page, setPage] = useState(safeStart);
   const [numPages, setNumPages] = useState(0);
   const [width, setWidth] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -28,14 +31,18 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
   useEffect(() => {
-    setPage(1);
+    setPage(safeStart);
     setNumPages(0);
     setLoading(true);
     setProgress(0);
     setError('');
     setUseIframe(false);
     setIframeLoaded(false);
-  }, [url]);
+  }, [url, safeStart]);
+
+  const lastPage = endPage && endPage >= safeStart ? Math.min(endPage, numPages || endPage) : numPages;
+  const pageCount = lastPage >= safeStart ? lastPage - safeStart + 1 : 0;
+  const showRange = endPage !== undefined && endPage > safeStart;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -47,11 +54,15 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
     return () => ro.disconnect();
   }, []);
 
-  const onLoadSuccess = useCallback(({ numPages: total }: { numPages: number }) => {
-    setNumPages(total);
-    setLoading(false);
-    setError('');
-  }, []);
+  const onLoadSuccess = useCallback(
+    ({ numPages: total }: { numPages: number }) => {
+      setNumPages(total);
+      setPage(safeStart);
+      setLoading(false);
+      setError('');
+    },
+    [safeStart]
+  );
 
   const onLoadError = useCallback((err: Error) => {
     console.error('PDF.js load failed:', err);
@@ -81,10 +92,16 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
 
       {numPages > 0 && !useIframe && (
         <div className="flex flex-wrap items-center justify-center gap-2 border-b border-blue-50 bg-white px-3 py-2 text-sm">
+          {showRange ? (
+            <span className="text-muted">
+              Reading pages <strong className="text-ink">{safeStart}</strong>–<strong className="text-ink">{lastPage}</strong>{' '}
+              ({pageCount} pages)
+            </span>
+          ) : null}
           <button
             type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= safeStart}
+            onClick={() => setPage((p) => Math.max(safeStart, p - 1))}
             className="rounded-lg p-1.5 hover:bg-slate-100 disabled:opacity-40"
             aria-label="Previous page"
           >
@@ -94,21 +111,22 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
             Page{' '}
             <input
               type="number"
-              min={1}
-              max={numPages}
+              min={safeStart}
+              max={lastPage || numPages}
               value={page}
               onChange={(e) => {
                 const n = Number(e.target.value);
-                if (n >= 1 && n <= numPages) setPage(n);
+                const max = lastPage || numPages;
+                if (n >= safeStart && n <= max) setPage(n);
               }}
               className="w-14 rounded border border-blue-100 px-1 py-0.5 text-center text-ink"
             />{' '}
-            of {numPages}
+            of {lastPage || numPages}
           </span>
           <button
             type="button"
-            disabled={page >= numPages}
-            onClick={() => setPage((p) => Math.min(numPages, p + 1))}
+            disabled={page >= (lastPage || numPages)}
+            onClick={() => setPage((p) => Math.min(lastPage || numPages, p + 1))}
             className="rounded-lg p-1.5 hover:bg-slate-100 disabled:opacity-40"
             aria-label="Next page"
           >
@@ -170,20 +188,38 @@ export function PdfViewer({ url, title = 'PDF lesson' }: Props) {
                 onLoadError={onLoadError}
                 onLoadProgress={onLoadProgress}
                 loading=""
-                className="shadow-md"
+                className="flex w-full flex-col gap-4 shadow-md"
               >
-                <Page
-                  pageNumber={page}
-                  width={Math.max(width - 24, 280)}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                  aria-label={`${title}, page ${page}`}
-                  loading={
-                    <div className="flex h-64 items-center justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-sea" />
-                    </div>
-                  }
-                />
+                {showRange && lastPage >= safeStart
+                  ? Array.from({ length: pageCount }, (_, i) => safeStart + i).map((pageNumber) => (
+                      <Page
+                        key={pageNumber}
+                        pageNumber={pageNumber}
+                        width={Math.max(width - 24, 280)}
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                        aria-label={`${title}, page ${pageNumber}`}
+                        loading={
+                          <div className="flex h-64 items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-sea" />
+                          </div>
+                        }
+                      />
+                    ))
+                  : (
+                      <Page
+                        pageNumber={page}
+                        width={Math.max(width - 24, 280)}
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                        aria-label={`${title}, page ${page}`}
+                        loading={
+                          <div className="flex h-64 items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-sea" />
+                          </div>
+                        }
+                      />
+                    )}
               </Document>
             </>
           )
