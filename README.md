@@ -248,3 +248,19 @@ Use demo accounts after the API seeds the database on first request:
 - **Custom domain:** add in Vercel → Domains; keep `VITE_API_URL` pointing to Render.
 - **Local dev** — leave `VITE_API_URL` empty; Vite proxy sends `/api` to port 3847.
 
+### Vercel site blank or won't load?
+
+In Vercel → **Project → Settings → General → Root Directory**, use **one** of these (not both):
+
+| Root Directory | What Vercel uses |
+|----------------|------------------|
+| **Empty** (repo root) | Root `vercel.json` builds `client/` automatically |
+| **`client`** | `client/vercel.json` + Vite auto-detect |
+
+Then **Redeploy** (Deployments → ⋯ → Redeploy).
+
+Also check:
+- Build log shows **Build Completed** (not failed)
+- Environment variable `VITE_API_URL` = your Render API URL (login needs API; home page should still load without it)
+- Open the exact URL from **Deployments → Visit** (not an old preview link)
+
