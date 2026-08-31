@@ -1,5 +1,6 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, clearSession, getStoredUser, setSession, type User } from './lib/api';
+import { clearApiCache, prefetchStudentData } from './lib/useApiData';
 
 interface AuthContextValue {
   user: User | null;
@@ -14,6 +15,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => getStoredUser());
 
+  useEffect(() => {
+    if (user?.role === 'STUDENT') prefetchStudentData();
+  }, [user?.id, user?.role]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -24,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setSession(data.token, data.user);
         setUser(data.user);
+        if (data.user.role === 'STUDENT') prefetchStudentData();
         return data.user;
       },
       async register(name, email, password) {
@@ -33,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setSession(data.token, data.user);
         setUser(data.user);
+        if (data.user.role === 'STUDENT') prefetchStudentData();
         return data.user;
       },
       async logout() {
@@ -42,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           /* ignore */
         }
         clearSession();
+        clearApiCache();
         setUser(null);
       },
       updateUser(updated) {

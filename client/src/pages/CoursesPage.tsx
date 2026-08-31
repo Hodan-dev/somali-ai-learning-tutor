@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, ChevronLeft, ChevronRight, Filter, Search } from 'lucide-react';
-import { api } from '../lib/api';
-import { ErrorBox, Loading } from '../components/ui';
+import { useApiData } from '../lib/useApiData';
+import { ErrorBox, TableSkeleton } from '../components/ui';
 
 interface Course {
   id: string;
@@ -36,20 +36,12 @@ function progressBarColor(progress: number) {
 }
 
 export function CoursesPage() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error } = useApiData<{ courses: Course[] }>('/api/courses');
+  const courses = data?.courses ?? [];
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 10;
-
-  useEffect(() => {
-    api<{ courses: Course[] }>('/api/courses')
-      .then((d) => setCourses(d.courses))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
 
   const categories = [...new Set(courses.map((c) => c.category))];
 
@@ -68,12 +60,10 @@ export function CoursesPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const visible = filtered.slice((page - 1) * perPage, page * perPage);
-
-  if (loading) return <Loading fullPage />;
-  if (error) return <ErrorBox message={error} />;
-
   const from = filtered.length === 0 ? 0 : (page - 1) * perPage + 1;
   const to = Math.min(page * perPage, filtered.length);
+
+  if (error && !courses.length) return <ErrorBox message={error} />;
 
   return (
     <div className="space-y-6">
@@ -120,6 +110,9 @@ export function CoursesPage() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        {loading && !courses.length ? (
+          <TableSkeleton rows={6} />
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
@@ -196,7 +189,9 @@ export function CoursesPage() {
             </tbody>
           </table>
         </div>
+        )}
 
+        {!loading || courses.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3.5 text-sm text-slate-600">
           <div>
             Results: <span className="font-semibold text-ink">{from}</span> –{' '}
@@ -238,6 +233,7 @@ export function CoursesPage() {
             </button>
           </div>
         </div>
+        ) : null}
       </div>
     </div>
   );

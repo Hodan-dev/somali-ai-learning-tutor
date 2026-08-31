@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   BookOpen,
@@ -90,8 +90,14 @@ function SidebarNavLink({ link }: { link: NavLinkItem }) {
 export function AppShell({ variant }: { variant: ShellVariant }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const config = shellConfig[variant];
+
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen bg-[#f4f6f8]">
@@ -152,20 +158,24 @@ export function AppShell({ variant }: { variant: ShellVariant }) {
       </aside>
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-64">
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">
+        <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">
           <div className="lg:hidden">
             <BrandLogo to={config.home} size="sm" subtitle={config.subtitle} />
           </div>
-          <div className="mx-auto hidden max-w-lg flex-1 lg:block">
-            <label className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="search"
-                placeholder={config.searchPlaceholder}
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm outline-none focus:border-sea focus:bg-white focus:ring-2 focus:ring-sky-200"
-              />
-            </label>
-          </div>
+          {variant === 'admin' ? (
+            <div className="mx-auto hidden max-w-lg flex-1 lg:block">
+              <label className="relative block">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  placeholder={config.searchPlaceholder}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm outline-none focus:border-sea focus:bg-white focus:ring-2 focus:ring-sky-200"
+                />
+              </label>
+            </div>
+          ) : (
+            <div className="hidden flex-1 lg:block" />
+          )}
           <div className="flex items-center gap-2">
             <button type="button" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Notifications">
               <Bell className="h-5 w-5" />
@@ -193,8 +203,8 @@ export function AppShell({ variant }: { variant: ShellVariant }) {
           ))}
         </nav>
 
-        <main ref={mainRef} className="min-h-[calc(100vh-4rem)] flex-1 px-4 py-6 sm:px-6 lg:py-8">
-          <DynamicSelectEnhancer scope={mainRef} />
+        <main ref={mainRef} className="min-h-[calc(100vh-3.5rem)] flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:py-6">
+          {variant === 'admin' && <DynamicSelectEnhancer scope={mainRef} />}
           <Outlet />
         </main>
       </div>

@@ -3,31 +3,25 @@ import { Link } from 'react-router-dom';
 import { Pencil, Save } from 'lucide-react';
 import { useAuth } from '../auth';
 import { api } from '../lib/api';
+import { useApiData } from '../lib/useApiData';
 import { CourseProgressRow, ErrorBox, Loading, ProgressBar } from '../components/ui';
 import type { User } from '../lib/api';
 
+type ProgressData = {
+  overall: number;
+  lessonsCompleted: number;
+  lessonsTotal: number;
+  exercisesCompleted: number;
+  averageScore: number;
+  courses: Array<{ id: string; title: string; category: string; progress: number }>;
+  completedCourses: Array<{ title: string; final_score: number; category: string }>;
+};
+
 export function ProgressPage() {
-  const [data, setData] = useState<{
-    overall: number;
-    lessonsCompleted: number;
-    lessonsTotal: number;
-    exercisesCompleted: number;
-    averageScore: number;
-    courses: Array<{ id: string; title: string; category: string; progress: number }>;
-    completedCourses: Array<{ title: string; final_score: number; category: string }>;
-  } | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error } = useApiData<ProgressData>('/api/progress');
 
-  useEffect(() => {
-    api<NonNullable<typeof data>>('/api/progress')
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <Loading fullPage />;
-  if (error) return <ErrorBox message={error} />;
+  if (error && !data) return <ErrorBox message={error} />;
+  if (loading && !data) return <Loading />;
   if (!data) return null;
 
   return (
@@ -93,7 +87,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export function ProfilePage() {
   const { user, updateUser } = useAuth();
-  const [data, setData] = useState<{
+  const {
+    data: profileData,
+    loading: profileLoading,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useApiData<{
     user: { name: string; email: string; created_at: string };
     profile: {
       enrolledCourses?: number;
@@ -101,30 +100,19 @@ export function ProfilePage() {
       lessonsCompleted?: number;
       joinedAt: string;
     };
-  } | null>(null);
-  const [progress, setProgress] = useState<{ overall: number; averageScore: number } | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  }>('/api/profile');
+  const { data: progressData } = useApiData<{ overall: number; averageScore: number }>('/api/progress');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
-    Promise.all([
-      api<NonNullable<typeof data>>('/api/profile'),
-      api<{ overall: number; averageScore: number }>('/api/progress'),
-    ])
-      .then(([p, pr]) => {
-        setData(p);
-        setName(p.user.name);
-        setProgress(pr);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+    if (profileData?.user.name) setName(profileData.user.name);
+  }, [profileData?.user.name]);
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
@@ -141,8 +129,8 @@ export function ProfilePage() {
         method: 'PATCH',
         json: payload,
       });
-      setData((prev) => (prev ? { ...prev, user: { ...prev.user, name: res.user.name } } : prev));
       updateUser({ ...user!, name: res.user.name, email: res.user.email, role: res.user.role });
+      refetchProfile();
       setMsg(res.message);
       setEditing(false);
       setCurrentPassword('');
@@ -154,9 +142,9 @@ export function ProfilePage() {
     }
   }
 
-  if (loading) return <Loading fullPage />;
-  if (error && !data) return <ErrorBox message={error} />;
-  if (!data) return null;
+  if (profileLoading && !profileData) return <Loading />;
+  if (profileError && !profileData) return <ErrorBox message={profileError} />;
+  if (!profileData) return null;
 
   return (
     <div className="w-full space-y-6">
@@ -184,13 +172,13 @@ export function ProfilePage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sea to-sea-dark font-display text-2xl font-bold text-white">
-              {data.user.name.charAt(0)}
+              {profileData.user.name.charAt(0)}
             </div>
             <div>
-              <h2 className="font-display text-xl font-semibold text-ink">{data.user.name}</h2>
-              <p className="text-sm text-muted">{data.user.email}</p>
+              <h2 className="font-display text-xl font-semibold text-ink">{profileData.user.name}</h2>
+              <p className="text-sm text-muted">{profileData.user.email}</p>
               <p className="mt-1 text-xs text-muted">
-                Member since {new Date(data.profile.joinedAt).toLocaleDateString()}
+                Member since {new Date(profileData.profile.joinedAt).toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -211,7 +199,7 @@ export function ProfilePage() {
                 <label className="mb-1.5 block text-sm font-medium text-ink">Email</label>
                 <input
                   className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-muted"
-                  value={data.user.email}
+                  value={profileData.user.email}
                   disabled
                 />
                 <p className="mt-1 text-xs text-muted">Email cannot be changed.</p>
@@ -248,7 +236,7 @@ export function ProfilePage() {
                   type="button"
                   onClick={() => {
                     setEditing(false);
-                    setName(data.user.name);
+                    setName(profileData.user.name);
                     setCurrentPassword('');
                     setNewPassword('');
                     setError('');
@@ -261,10 +249,10 @@ export function ProfilePage() {
             </form>
           ) : (
             <dl className="mt-6 space-y-3 border-t border-slate-100 pt-6 text-sm">
-              <Row label="Full name" value={data.user.name} />
-              <Row label="Email" value={data.user.email} />
+              <Row label="Full name" value={profileData.user.name} />
+              <Row label="Email" value={profileData.user.email} />
               <Row label="Role" value="Student" />
-              <Row label="Joined" value={new Date(data.profile.joinedAt).toLocaleDateString()} />
+              <Row label="Joined" value={new Date(profileData.profile.joinedAt).toLocaleDateString()} />
             </dl>
           )}
         </section>
@@ -273,11 +261,11 @@ export function ProfilePage() {
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="font-display font-semibold text-ink">Learning stats</h3>
             <dl className="mt-4 space-y-3 text-sm">
-              <Row label="Courses enrolled" value={String(data.profile.enrolledCourses ?? 0)} />
-              <Row label="Courses completed" value={String(data.profile.completedCourses ?? 0)} />
-              <Row label="Lessons completed" value={String(data.profile.lessonsCompleted ?? 0)} />
-              <Row label="Overall progress" value={`${progress?.overall ?? 0}%`} />
-              <Row label="Exercise avg" value={`${progress?.averageScore ?? 0}%`} />
+              <Row label="Courses enrolled" value={String(profileData.profile.enrolledCourses ?? 0)} />
+              <Row label="Courses completed" value={String(profileData.profile.completedCourses ?? 0)} />
+              <Row label="Lessons completed" value={String(profileData.profile.lessonsCompleted ?? 0)} />
+              <Row label="Overall progress" value={`${progressData?.overall ?? 0}%`} />
+              <Row label="Exercise avg" value={`${progressData?.averageScore ?? 0}%`} />
             </dl>
           </section>
         </aside>

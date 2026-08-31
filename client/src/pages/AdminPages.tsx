@@ -2,6 +2,7 @@ import { useEffect, useState, type ComponentType, type FormEvent, type ReactNode
 import { Link, useParams } from 'react-router-dom';
 import { BookOpen, Bot, GraduationCap, Plus, Trash2, UserRound, Users } from 'lucide-react';
 import { api, getToken } from '../lib/api';
+import { useApiData } from '../lib/useApiData';
 import { Badge, ErrorBox, Loading, ProgressBar, CourseProgressRow } from '../components/ui';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { AreaChart, BarChart, DonutChart, StatCard } from '../components/admin/DashboardCharts';
@@ -55,17 +56,11 @@ async function uploadPdfLesson(moduleId: string, title: string, file: File) {
 }
 
 export function AdminDashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState('');
+  const { data, error, loading } = useApiData<DashboardData>('/api/admin/stats');
 
-  useEffect(() => {
-    api<DashboardData>('/api/admin/stats')
-      .then(setData)
-      .catch((e) => setError(e.message));
-  }, []);
-
-  if (error) return <ErrorBox message={error} />;
-  if (!data) return <Loading />;
+  if (error && !data) return <ErrorBox message={error} />;
+  if (loading && !data) return <Loading />;
+  if (!data) return null;
 
   const donutData =
     data.charts.studentsBySubject.length > 0

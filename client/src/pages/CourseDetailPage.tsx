@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, Circle } from 'lucide-react';
-import { api } from '../lib/api';
+import { useApiData } from '../lib/useApiData';
 import { Badge, ErrorBox, Loading, CourseProgressRow } from '../components/ui';
 
 interface CourseDetail {
@@ -30,19 +29,11 @@ interface CourseDetail {
 
 export function CourseDetailPage() {
   const { id } = useParams();
-  const [course, setCourse] = useState<CourseDetail | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error } = useApiData<{ course: CourseDetail }>(id ? `/api/courses/${id}` : null);
+  const course = data?.course ?? null;
 
-  useEffect(() => {
-    api<{ course: CourseDetail }>(`/api/courses/${id}`)
-      .then((d) => setCourse(d.course))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading) return <Loading />;
-  if (error) return <ErrorBox message={error} />;
+  if (error && !course) return <ErrorBox message={error} />;
+  if (loading && !course) return <Loading />;
   if (!course) return null;
 
   return (

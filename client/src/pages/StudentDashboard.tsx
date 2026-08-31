@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -12,9 +12,8 @@ import {
   Play,
   Sparkles,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
 import { useAuth } from '../auth';
-import { api } from '../lib/api';
+import { useApiData } from '../lib/useApiData';
 import { ErrorBox, Loading } from '../components/ui';
 
 interface ProgressData {
@@ -158,19 +157,10 @@ function CourseCard({
 
 export function StudentDashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState<ProgressData | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error } = useApiData<ProgressData>('/api/progress');
 
-  useEffect(() => {
-    api<ProgressData>('/api/progress')
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <Loading fullPage />;
-  if (error) return <ErrorBox message={error} />;
+  if (error && !data) return <ErrorBox message={error} />;
+  if (loading && !data) return <Loading />;
   if (!data) return null;
 
   const continueCourse = data.continueLearning
