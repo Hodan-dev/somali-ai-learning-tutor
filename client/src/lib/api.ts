@@ -12,6 +12,8 @@ export function apiUrl(path: string) {
 /** True on Vercel/production when VITE_API_URL was not set at build time. */
 export const isHostedWithoutApi = import.meta.env.PROD && !API_BASE;
 
+export type Role = 'ADMIN' | 'STUDENT';
+
 export interface User {
   id: string;
   name: string;
