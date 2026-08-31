@@ -196,3 +196,55 @@ MONGODB_URI=mongodb://localhost:27017/somali-tutor
 client/   React app (port 3850, proxies /api)
 server/   Express API + MongoDB + uploads
 ```
+
+## Deploy to Vercel (frontend) + Render (API)
+
+This app has two parts: **React frontend** (Vercel) and **Express API + MongoDB** (not on Vercel alone).
+
+### Step 1 — MongoDB Atlas (database)
+
+1. Create a free cluster at [MongoDB Atlas](https://www.mongodb.com/atlas)
+2. Database Access → create user + password
+3. Network Access → allow `0.0.0.0/0` (or Render IPs)
+4. Copy connection string, e.g.  
+   `mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/somali-tutor`
+
+### Step 2 — Deploy API on Render
+
+1. Push this repo to GitHub
+2. Go to [Render](https://render.com) → **New** → **Blueprint** → connect repo  
+   (uses `render.yaml` in the repo root)
+3. Set environment variables in Render:
+   - `MONGODB_URI` — your Atlas connection string
+   - `GEMINI_API_KEY` — optional, for AI tutor
+4. Deploy → copy your API URL, e.g. `https://ardeytechhub-api.onrender.com`
+5. Test: open `https://YOUR-API.onrender.com/api/health` — should return `{"ok":true,...}`
+
+### Step 3 — Deploy frontend on Vercel
+
+1. Go to [Vercel](https://vercel.com) → **Add New Project** → import your GitHub repo
+2. Vercel reads `vercel.json` automatically:
+   - **Build command:** `npm run build --prefix client`
+   - **Output directory:** `client/dist`
+3. **Environment variables** (Vercel → Project → Settings → Environment Variables):
+
+| Name | Value |
+|------|--------|
+| `VITE_API_URL` | `https://YOUR-API.onrender.com` (no trailing slash) |
+
+4. Click **Deploy**
+5. Open your Vercel URL (e.g. `https://ardeytechhub.vercel.app`)
+
+### Step 4 — Log in
+
+Use demo accounts after the API seeds the database on first request:
+
+- Student: `ahmed@student.so` / `password123`
+- Admin: `admin@somalilearn.so` / `password123`
+
+### Notes
+
+- **PDF uploads** on Render use ephemeral disk — re-import Manhajka PDFs after redeploy, or use MongoDB + cloud storage later.
+- **Custom domain:** add in Vercel → Domains; keep `VITE_API_URL` pointing to Render.
+- **Local dev** — leave `VITE_API_URL` empty; Vite proxy sends `/api` to port 3847.
+
