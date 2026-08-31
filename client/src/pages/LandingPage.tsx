@@ -458,36 +458,36 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-blue-100 bg-white/80">
+      <footer className="bg-gradient-to-br from-[#0038e8] to-[#1d4ed8] text-white">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div className="sm:col-span-2">
-              <BrandLogo to="/" size="md" subtitle="Academic · Digital Learning" />
-              <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">
+              <BrandLogo to="/" size="md" subtitle="Academic · Digital Learning" theme="dark" />
+              <p className="mt-4 max-w-sm text-sm leading-relaxed text-blue-100">
                 ArdeyTechHub — a simple academic platform for students to learn, practice, ask AI, and
                 track progress across five school subjects.
               </p>
             </div>
 
             <div>
-              <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-ink">
+              <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-white">
                 Navigation
               </h3>
               <ul className="mt-4 space-y-2 text-sm">
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
-                    <a href={link.href} className="text-muted hover:text-sea">
+                    <a href={link.href} className="text-blue-100 transition hover:text-white">
                       {link.label}
                     </a>
                   </li>
                 ))}
                 <li>
-                  <Link to="/register" className="text-muted hover:text-sea">
+                  <Link to="/register" className="text-blue-100 transition hover:text-white">
                     Register
                   </Link>
                 </li>
                 <li>
-                  <Link to="/login" className="text-muted hover:text-sea">
+                  <Link to="/login" className="text-blue-100 transition hover:text-white">
                     Login
                   </Link>
                 </li>
@@ -495,10 +495,10 @@ export function LandingPage() {
             </div>
 
             <div>
-              <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-ink">
+              <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-white">
                 Subjects
               </h3>
-              <ul className="mt-4 space-y-2 text-sm text-muted">
+              <ul className="mt-4 space-y-2 text-sm text-blue-100">
                 <li>Physics</li>
                 <li>Biology</li>
                 <li>English</li>
@@ -508,9 +508,9 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-blue-100 pt-8 text-center text-sm text-muted sm:flex-row sm:text-left">
+          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/20 pt-8 text-center text-sm text-blue-100 sm:flex-row sm:text-left">
             <p>© {new Date().getFullYear()} ArdeyTechHub. All rights reserved.</p>
-            <p className="font-medium text-sea">
+            <p className="font-medium text-sky-200">
               LEARN → PRACTICE → ASK → IMPROVE → TRACK → COMPLETE
             </p>
           </div>
