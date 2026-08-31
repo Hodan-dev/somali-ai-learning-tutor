@@ -181,7 +181,20 @@ export function ProfilePage() {
   }
 
   if (profileLoading && !profileData) return <Loading />;
-  if (profileError && !profileData) return <ErrorBox message={profileError} />;
+  if (profileError && !profileData) {
+    return (
+      <div className="space-y-3">
+        <ErrorBox message={profileError} />
+        <button
+          type="button"
+          onClick={refetchProfile}
+          className="rounded-xl bg-sea px-4 py-2 text-sm font-semibold text-white hover:bg-sea-dark"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
   if (!profileData) return null;
 
   return (
