@@ -94,9 +94,39 @@ export function ErrorBox({ message }: { message: string }) {
   );
 }
 
+/** Remove leading # title when it duplicates the page heading. */
+export function stripDuplicateLessonTitle(content: string, title?: string) {
+  if (!title?.trim()) return content;
+
+  const normalize = (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/[^\w\s]/g, '');
+
+  const target = normalize(title);
+  const lines = content.replace(/\r\n/g, '\n').split('\n');
+  let index = 0;
+
+  while (index < lines.length && lines[index].trim() === '') index += 1;
+  if (index >= lines.length) return content;
+
+  const heading = lines[index].trim();
+  const h1 = heading.match(/^#\s+(.+)$/);
+  if (h1 && normalize(h1[1]) === target) {
+    lines.splice(index, 1);
+    while (index < lines.length && lines[index].trim() === '') lines.splice(index, 1);
+    return lines.join('\n');
+  }
+
+  return content;
+}
+
 /** Minimal markdown-ish renderer for lesson content */
-export function LessonContent({ content }: { content: string }) {
-  const html = renderSimpleMarkdown(content);
+export function LessonContent({ content, title }: { content: string; title?: string }) {
+  const cleaned = stripDuplicateLessonTitle(content, title);
+  const html = renderSimpleMarkdown(cleaned);
   return <div className="prose-lesson" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 

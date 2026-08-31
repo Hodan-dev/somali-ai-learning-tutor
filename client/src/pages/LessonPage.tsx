@@ -220,7 +220,7 @@ export function LessonPage() {
 
         {lesson.content && lesson.content.length > 40 ? (
           <div className="mt-6 max-w-none">
-            <LessonContent content={lesson.content} />
+            <LessonContent content={lesson.content} title={lesson.title} />
           </div>
         ) : null}
 
@@ -243,7 +243,7 @@ export function LessonPage() {
             </Suspense>
           </div>
         ) : !lesson.content || lesson.content.length <= 40 ? (
-          <LessonContent content={lesson.content || ''} />
+          <LessonContent content={lesson.content || ''} title={lesson.title} />
         ) : null}
 
         {doneMsg && (
