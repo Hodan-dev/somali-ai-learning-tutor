@@ -9,7 +9,8 @@ export function apiUrl(path: string) {
   return `${API_BASE}${path}`;
 }
 
-export type Role = 'ADMIN' | 'STUDENT';
+/** True on Vercel/production when VITE_API_URL was not set at build time. */
+export const isHostedWithoutApi = import.meta.env.PROD && !API_BASE;
 
 export interface User {
   id: string;
@@ -62,6 +63,11 @@ export async function api<T = unknown>(
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (isHostedWithoutApi && res.status === 404) {
+      throw new Error(
+        'API not connected. In Vercel, add VITE_API_URL to your Render backend URL, then redeploy.'
+      );
+    }
     throw new Error((data as { error?: string }).error || 'Khalad ayaa dhacay');
   }
   return data as T;

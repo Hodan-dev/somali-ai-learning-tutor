@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { isHostedWithoutApi } from '../lib/api';
 import { useAuth } from '../auth';
 import { BrandLogo } from '../components/BrandLogo';
 import { ErrorBox } from '../components/ui';
@@ -46,6 +47,12 @@ export function LoginPage() {
       }
     >
       <form onSubmit={onSubmit} className="space-y-4">
+        {isHostedWithoutApi && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <strong>Setup needed:</strong> Add <code className="rounded bg-amber-100 px-1">VITE_API_URL</code> in
+            Vercel (your Render API URL), then redeploy.
+          </div>
+        )}
         {error && <ErrorBox message={error} />}
         <Field label="Email" value={email} onChange={setEmail} type="email" />
         <Field label="Password" value={password} onChange={setPassword} type="password" />
@@ -120,6 +127,12 @@ export function RegisterPage() {
       }
     >
       <form onSubmit={onSubmit} className="space-y-4">
+        {isHostedWithoutApi && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <strong>Setup needed:</strong> Add <code className="rounded bg-amber-100 px-1">VITE_API_URL</code> in
+            Vercel, then redeploy.
+          </div>
+        )}
         {error && <ErrorBox message={error} />}
         <Field label="Magaca" value={name} onChange={setName} />
         <Field label="Email" value={email} onChange={setEmail} type="email" />
