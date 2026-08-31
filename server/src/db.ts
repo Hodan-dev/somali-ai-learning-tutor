@@ -23,8 +23,18 @@ export async function connectDb() {
     console.log(`Connecting to MongoDB at ${redactUri(uri)}…`);
   }
 
-  await mongoose.connect(uri);
-  console.log('Connected to MongoDB');
+  try {
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
+    console.log('Connected to MongoDB');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('bad auth') || uri.includes('<db_password>')) {
+      console.error('\n❌ MongoDB Atlas: password is missing or wrong.');
+      console.error('   Edit server/.env — replace <db_password> with your Atlas user password.');
+      console.error('   Atlas → Database Access → mareibra92_db_user → Edit password\n');
+    }
+    throw err;
+  }
 }
 
 export async function disconnectDb() {
