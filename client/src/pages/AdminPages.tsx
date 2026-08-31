@@ -1,9 +1,31 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type ComponentType, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Bot, GraduationCap, Plus, Trash2, UserRound, Users } from 'lucide-react';
 import { api, getToken } from '../lib/api';
 import { Badge, ErrorBox, Loading, ProgressBar, CourseProgressRow } from '../components/ui';
 import { SearchableSelect } from '../components/SearchableSelect';
+import { AreaChart, BarChart, DonutChart, StatCard } from '../components/admin/DashboardCharts';
+
+type DashboardData = {
+  stats: {
+    totalStudents: number;
+    newStudents: number;
+    totalCourses: number;
+    totalLessons: number;
+    totalExercises: number;
+    lessonsCompleted: number;
+    aiSessions: number;
+  };
+  trends: { students: number; courses: number; lessonsCompleted: number; aiSessions: number };
+  charts: {
+    studentsBySubject: Array<{ category: string; count: number }>;
+    coursePopularity: Array<{ title: string; category: string; enrollments: number }>;
+    weeklyActivity: Array<{ day: string; date: string; activity: number; lessons: number; exercises: number }>;
+  };
+  recentStudents: Array<{ id: string; name: string; email: string; created_at?: string }>;
+  recentLessons: Array<{ id: string; title: string; course_title?: string }>;
+  recentActivity: Array<{ student_name?: string; detail?: string; action: string; created_at?: string }>;
+};
 
 type PdfLessonDraft = { key: string; title: string; file: File | null };
 type ModuleDraft = { key: string; title: string; pdfLessons: PdfLessonDraft[] };
@@ -33,16 +55,11 @@ async function uploadPdfLesson(moduleId: string, title: string, file: File) {
 }
 
 export function AdminDashboard() {
-  const [data, setData] = useState<{
-    stats: { totalStudents: number; totalCourses: number; totalLessons: number; totalExercises: number };
-    recentStudents: Array<{ name: string; email: string }>;
-    recentLessons: Array<{ title: string; course_title: string }>;
-    recentActivity: Array<{ student_name: string; detail: string; action: string }>;
-  } | null>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api<NonNullable<typeof data>>('/api/admin/stats')
+    api<DashboardData>('/api/admin/stats')
       .then(setData)
       .catch((e) => setError(e.message));
   }, []);
@@ -50,39 +67,109 @@ export function AdminDashboard() {
   if (error) return <ErrorBox message={error} />;
   if (!data) return <Loading />;
 
-  const cards = [
-    { label: 'Total Students', value: data.stats.totalStudents },
-    { label: 'Total Courses', value: data.stats.totalCourses },
-    { label: 'Total Lessons', value: data.stats.totalLessons },
-    { label: 'Total Exercises', value: data.stats.totalExercises },
-  ];
+  const donutData =
+    data.charts.studentsBySubject.length > 0
+      ? data.charts.studentsBySubject.map((s) => ({ label: s.category, value: s.count }))
+      : [{ label: 'No enrollments yet', value: 1 }];
+
+  const barData = data.charts.coursePopularity.slice(0, 5).map((c) => ({
+    title: c.title.split(' ').slice(0, 2).join(' '),
+    enrollments: c.enrollments,
+  }));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold text-ink">Admin Dashboard</h1>
-        <p className="mt-1 text-muted">Maamul koorsooyinka, casharrada, layliyada, iyo ardayda.</p>
+        <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted">Overview of students, courses, and learning activity.</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl border border-blue-100 bg-white p-5">
-            <div className="text-xs text-muted">{c.label}</div>
-            <div className="mt-1 font-display text-3xl font-bold text-sea">{c.value}</div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Total Students"
+          value={data.stats.totalStudents}
+          trend={data.trends.students}
+          trendLabel="new in last 30 days"
+          icon={Users}
+          gradient="bg-gradient-to-br from-blue-500 to-blue-700"
+        />
+        <StatCard
+          title="New Students"
+          value={data.stats.newStudents}
+          trend={data.trends.students}
+          trendLabel="vs previous 30 days"
+          icon={UserRound}
+          gradient="bg-gradient-to-br from-orange-400 to-orange-600"
+        />
+        <StatCard
+          title="Total Courses"
+          value={data.stats.totalCourses}
+          trend={data.trends.courses}
+          trendLabel="platform capacity"
+          icon={GraduationCap}
+          gradient="bg-gradient-to-br from-violet-500 to-purple-700"
+        />
+        <StatCard
+          title="Lessons Completed"
+          value={data.stats.lessonsCompleted}
+          trend={data.trends.lessonsCompleted}
+          trendLabel="completed last 30 days"
+          icon={BookOpen}
+          gradient="bg-gradient-to-br from-rose-500 to-red-600"
+        />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-1">
+          <h2 className="font-display text-lg font-semibold text-ink">Students by Subject</h2>
+          <p className="mt-1 text-xs text-muted">Enrollments per subject area</p>
+          <div className="mt-6">
+            <DonutChart data={donutData} centerLabel="Enrolled" />
           </div>
-        ))}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-1">
+          <h2 className="font-display text-lg font-semibold text-ink">Course Popularity</h2>
+          <p className="mt-1 text-xs text-muted">Top courses by student enrollments</p>
+          <div className="mt-4">
+            {barData.length > 0 ? (
+              <BarChart data={barData} labelKey="title" valueKey="enrollments" />
+            ) : (
+              <p className="py-12 text-center text-sm text-muted">No enrollment data yet.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-1">
+          <h2 className="font-display text-lg font-semibold text-ink">Weekly Activity</h2>
+          <p className="mt-1 text-xs text-muted">Lessons, exercises & activity (last 7 days)</p>
+          <div className="mt-4">
+            <AreaChart data={data.charts.weeklyActivity} />
+          </div>
+        </section>
       </div>
+
       <div className="grid gap-5 lg:grid-cols-3">
         <Panel title="Recent Students">
-          {data.recentStudents.map((s, i) => (
-            <div key={i} className="text-sm">
-              <div className="font-medium">{s.name}</div>
-              <div className="text-muted">{s.email}</div>
-            </div>
-          ))}
+          {data.recentStudents.length === 0 ? (
+            <p className="text-sm text-muted">No students yet.</p>
+          ) : (
+            data.recentStudents.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sea-light font-semibold text-sea">
+                  {s.name.charAt(0)}
+                </div>
+                <div className="min-w-0 text-sm">
+                  <div className="truncate font-medium">{s.name}</div>
+                  <div className="truncate text-muted">{s.email}</div>
+                </div>
+              </div>
+            ))
+          )}
         </Panel>
         <Panel title="Recent Lessons">
-          {data.recentLessons.map((l, i) => (
-            <div key={i} className="text-sm">
+          {data.recentLessons.map((l) => (
+            <div key={l.id} className="rounded-xl bg-slate-50 p-3 text-sm">
               <div className="font-medium">{l.title}</div>
               <div className="text-muted">{l.course_title}</div>
             </div>
@@ -90,12 +177,42 @@ export function AdminDashboard() {
         </Panel>
         <Panel title="Recent Activity">
           {data.recentActivity.map((a, i) => (
-            <div key={i} className="text-sm">
+            <div key={i} className="rounded-xl bg-slate-50 p-3 text-sm">
               <div className="font-medium">{a.student_name}</div>
               <div className="text-muted">{a.detail || a.action}</div>
             </div>
           ))}
         </Panel>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MiniStat label="Total Lessons" value={data.stats.totalLessons} />
+        <MiniStat label="Total Exercises" value={data.stats.totalExercises} />
+        <MiniStat label="AI Tutor Sessions" value={data.stats.aiSessions} icon={Bot} />
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  icon?: ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      {Icon && (
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sea-light text-sea">
+          <Icon className="h-5 w-5" />
+        </div>
+      )}
+      <div>
+        <div className="text-xs text-muted">{label}</div>
+        <div className="font-display text-2xl font-bold text-ink">{value}</div>
       </div>
     </div>
   );
@@ -103,8 +220,8 @@ export function AdminDashboard() {
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-blue-100 bg-white p-5">
-      <h2 className="font-display font-semibold">{title}</h2>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="font-display font-semibold text-ink">{title}</h2>
       <div className="mt-4 space-y-3">{children}</div>
     </section>
   );
