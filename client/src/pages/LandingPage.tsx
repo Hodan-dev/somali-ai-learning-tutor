@@ -165,87 +165,67 @@ export function LandingPage() {
       </header>
 
       <section id="home" className="scroll-mt-20">
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-2 lg:pb-20 lg:pt-12">
-          <div className="relative z-10">
-            <p className="mb-3 font-display text-sm font-semibold uppercase tracking-[0.18em] text-sea">
-              Somali AI Learning Tutor
-            </p>
-            <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-ink sm:text-5xl lg:text-[3.25rem]">
-              Learn smarter with your Somali AI tutor
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
-              A simple learning platform for Somali students. Study five subjects, practice with exercises,
-              ask the AI tutor anytime, and track your progress — all in one place.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/register"
-                className="inline-flex items-center gap-2 rounded-xl bg-sea px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-sea-dark"
-              >
-                Register Free <ArrowRight className="h-4 w-4" />
-              </Link>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white/80 px-5 py-3 text-sm font-semibold text-ink hover:bg-white"
-              >
-                How it works
-              </a>
-              <Link
-                to="/login"
-                className="inline-flex items-center rounded-xl px-4 py-3 text-sm font-medium text-sea hover:underline"
-              >
-                Already have an account? Login
-              </Link>
-            </div>
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
-              {['Physics', 'Biology', 'English', 'Chemistry', 'Mathematics'].map((subject) => (
-                <li key={subject} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-sea" />
-                  {subject}
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="relative overflow-hidden bg-gradient-to-b from-sky-400 via-sky-200 to-white">
+          <div className="pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-white/30 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-sky-300/40 blur-3xl" />
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-sea to-sea-dark p-1 shadow-[0_30px_80px_-40px_rgba(37,99,235,0.45)]">
-            <div className="relative overflow-hidden rounded-[1.85rem] bg-[#1e3a8a] px-6 py-8 text-white sm:px-8 sm:py-10">
-              <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-400/30 blur-2xl" />
-              <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-sky-300/25 blur-2xl" />
-              <div className="relative space-y-5">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">
-                  <Bot className="h-3.5 w-3.5" /> What this system does
-                </div>
-                <h2 className="font-display text-2xl font-bold sm:text-3xl">
-                  Learn → Practice → Ask AI → Track progress
-                </h2>
-                <p className="text-sm leading-relaxed text-blue-50">
-                  Open a lesson, complete exercises, ask the AI tutor when you need help, and watch your
-                  progress grow — built for Somali students who want clear, friendly learning.
-                </p>
-                <div className="space-y-3 text-sm text-blue-50">
-                  <div className="rounded-xl bg-white/10 p-3 backdrop-blur">
-                    <div className="text-xs text-blue-100">Student question</div>
-                    Maxaan u isticmaalaa force ee Physics?
-                  </div>
-                  <div className="rounded-xl bg-white/15 p-3 backdrop-blur">
-                    <div className="text-xs text-sky-200">AI Tutor</div>
-                    Force waa xoog riixa ama jiida shay... Aan tallaabo tallaabo u eegno F = m × a.
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
-                  <div className="rounded-xl bg-black/15 p-3">
-                    <div className="font-display text-lg font-bold">5</div>
-                    Subjects
-                  </div>
-                  <div className="rounded-xl bg-black/15 p-3">
-                    <div className="font-display text-lg font-bold">AI</div>
-                    Tutor 24/7
-                  </div>
-                  <div className="rounded-xl bg-black/15 p-3">
-                    <div className="font-display text-lg font-bold">SO</div>
-                    Somali-first
-                  </div>
-                </div>
+          <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:py-20">
+            <div className="relative z-10">
+              <p className="mb-4 inline-flex rounded-full bg-white/80 px-4 py-1.5 text-sm font-semibold text-sky-700 shadow-sm backdrop-blur">
+                Somali AI Learning Tutor
+              </p>
+              <h1 className="font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white drop-shadow-md sm:text-5xl lg:text-[3.4rem]">
+                Waxbarta aan barwaaqo gaarnee
+              </h1>
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-sky-50 sm:text-lg">
+                Baro Physics, Biology, English, Chemistry, iyo Mathematics — casharro cad, layliyo,
+                macallin AI, iyo raadinta horumarkaaga hal meel.
+              </p>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/90">
+                A learning platform built for Somali students — study lessons, practice exercises,
+                ask the AI tutor anytime, and track your progress.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-sky-700 shadow-md transition hover:bg-sky-50"
+                >
+                  Register Free <ArrowRight className="h-4 w-4" />
+                </Link>
+                <a
+                  href="#how-it-works"
+                  className="inline-flex items-center gap-2 rounded-xl border-2 border-white/80 bg-white/20 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30"
+                >
+                  How it works
+                </a>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center rounded-xl px-4 py-3 text-sm font-medium text-white hover:underline"
+                >
+                  Login
+                </Link>
+              </div>
+              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/95">
+                {['Physics', 'Biology', 'English', 'Chemistry', 'Mathematics'].map((subject) => (
+                  <li key={subject} className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-white" />
+                    {subject}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="relative">
+              <div className="overflow-hidden rounded-[2rem] border-4 border-white bg-white p-2 shadow-[0_25px_60px_-20px_rgba(14,165,233,0.45)]">
+                <img
+                  src="/hero-students.jpg"
+                  alt="Somali students learning together"
+                  className="aspect-[4/3] w-full rounded-[1.5rem] object-cover"
+                />
+              </div>
+              <div className="absolute -bottom-4 -left-4 hidden rounded-2xl border border-white/80 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:block">
+                <p className="text-xs font-medium text-sky-600">Barasho · Horumar · Barwaaqo</p>
+                <p className="font-display text-sm font-bold text-ink">Learn · Grow · Prosper</p>
               </div>
             </div>
           </div>
